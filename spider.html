@@ -62,7 +62,7 @@ button{font:inherit}
 .draw-pile.pulse{animation:pulse .35s ease}
 .drawn-stack{position:relative;left:-42px;right:auto;width:108px;height:105px;overflow:visible}
 /* 抽牌堆中被盖住的已知词：跟随被盖牌自身的左侧露出区域，不漂到牌堆外。 */
-.drawn-peek{position:absolute;top:18px;width:28px;height:70px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:13px;line-height:1;writing-mode:vertical-rl;text-orientation:mixed;white-space:nowrap;overflow:hidden;pointer-events:none;z-index:200}
+.drawn-peek{position:absolute;top:14px;width:28px;height:76px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:12px;line-height:1;writing-mode:vertical-rl;text-orientation:mixed;white-space:nowrap;overflow:visible;pointer-events:none;z-index:200}
 .drawn-peek.category-peek{font-weight:900;color:#604700}
 
 .drawn-card.dragging{z-index:1000!important;cursor:grabbing;box-shadow:0 18px 35px #0006;transform:scale(1.04) rotate(1deg)}
@@ -76,8 +76,7 @@ button{font:inherit}
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  overflow-x: hidden;
-  overflow-y: hidden;
+  overflow: visible;
   touch-action: none;
   z-index: 1; /* 改为 1，低于 board */
 }
@@ -95,7 +94,7 @@ button{font:inherit}
 .mission .slot-word .icon{font-weight:400;line-height:1;}
 .mission .slot-word.category-only{top:0;left:50%;transform:translateX(-50%);width:100%;height:105px;background:linear-gradient(145deg,#ffe77a,#efbd25);border:3px solid #e0a900;border-radius:14px;padding:10px}
 .mission .slot-count{position:absolute;left:8px;top:6px;color:#6e685e;font-size:12px;font-weight:400;z-index:7;line-height:1}
-.mission.over{transform:translateY(-5px) scale(1.02);box-shadow:0 0 0 4px #fff8,0 5px 16px #0004}
+.mission.over{transform:translateY(-5px);box-shadow:0 0 0 4px #fff8,0 5px 16px #0004}
 .mission.done{animation:missionDone .55s ease}
 .mission.flash{animation:missionFlash .65s ease}
 .mission .category-center{font-size:20px;font-weight:900;color:#604700;text-align:center}
@@ -153,6 +152,7 @@ button{font:inherit}
 .mbtn{border:0;border-radius:22px;font-size:15px;font-weight:700;padding:11px;cursor:pointer;margin-top:8px;width:100%}
 .mbtn.primary{background:linear-gradient(135deg,#ffb648,#ff9f43);color:#fff}
 .mbtn.ghost{background:#f0f0f0;color:#333}
+.jump-row{display:flex;gap:8px;align-items:center}.jump-input{flex:1;min-width:0;height:40px;border:2px solid #dce4df;border-radius:10px;padding:0 12px;font-size:15px;color:var(--ink);outline:none}.jump-input:focus{border-color:#087b40}.jump-btn{width:88px;margin-top:0!important}
 /* 关卡选择 */
 .srow.levelSelect{flex-wrap:wrap;gap:8px;justify-content:flex-start;border:0}
 .lvbtn{width:40px;height:36px;border-radius:8px;background:#087b40;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -169,7 +169,7 @@ button{font:inherit}
  .steps{width:70px;height:94px;border-width:3px}.steps:after{border-left-width:32px;border-right-width:32px;border-bottom-width:17px}.steps .h{padding:6px 0;font-size:14px}.steps .n{font-size:32px;margin-top:5px}
  .draw-area{width:205px;height:96px;gap:5px}
  .drawn-stack{width:88px;height:94px;left:-42px}
- .drawn-peek{top:14px;width:28px;height:66px;font-size:12px}
+ .drawn-peek{top:12px;width:28px;height:70px;font-size:11px}
  .draw-pile{width:72px;height:94px;border-width:3px}.draw-pile:after{font-size:45px}.draw-pile span{font-size:12px;bottom:4px}
  .empty-drawn{left:calc(50% - 74px);width:68px;height:94px}
  .missions{left:18px;right:18px;top:238px;height:94px;gap:6px}
@@ -228,8 +228,20 @@ button{font:inherit}
     <div class="srow"><div class="slab">震动反馈<span class="hint">支持的设备提供轻微反馈</span></div><div class="switch on" id="sw-vibration"><div class="dot"></div></div></div>
     <div class="srow"><div class="slab">确认退出<span class="hint">离开正在进行的关卡时确认</span></div><div class="switch on" id="sw-confirmExit"><div class="dot"></div></div></div>
     <div class="srow"><div class="slab">当前进度<span class="hint" id="progressInfo">已解锁第 1 关</span></div></div>
+    <div class="srow"><div class="slab" style="width:100%">跳关<span class="hint">直接开始指定关卡，不修改已解锁进度</span><div class="jump-row" style="margin-top:8px"><input class="jump-input" id="jumpLevelInput" type="number" min="1" max="999" step="1" inputmode="numeric" placeholder="输入关卡号"><button class="mbtn primary jump-btn" id="btnJump">跳转</button></div></div></div>
+    <button class="mbtn ghost" id="btnResetProgress">重置游戏进度</button>
     <button class="mbtn primary" id="btnHome">返回主菜单</button>
     <button class="mbtn ghost" id="btnCloseSet">关闭</button>
+  </div>
+</div>
+
+<div class="modal-mask" id="winMask">
+  <div class="modal" style="text-align:center">
+    <h2 id="winTitle">恭喜过关！</h2>
+    <div id="winText" style="font-size:14px;color:#6e685e;margin:8px 0 14px">第 1 关完成</div>
+    <button class="mbtn primary" id="btnNextLevel">下一关</button>
+    <button class="mbtn ghost" id="btnReplayLevel">重玩本关</button>
+    <button class="mbtn ghost" id="btnWinHome">返回主菜单</button>
   </div>
 </div>
 
@@ -443,6 +455,9 @@ function renderDrawn(){
       const peek=document.createElement('div');
       peek.className='drawn-peek';
       peek.textContent=card.name;
+      // 横向堆叠时只露出窄侧边：根据词长自动缩小竖排字号，确保完整显示，不再被固定高度截断。
+      const peekLen=[...String(card.name||'')].length;
+      if(peekLen>0) peek.style.fontSize=Math.min(12,Math.max(8,72/peekLen))+'px';
       if(card.type==='category')peek.classList.add('category-peek');
       peek.style.left=(localIndex*28)+'px';
       peek.style.zIndex=500+localIndex;
@@ -607,7 +622,8 @@ function checkWin(){
   if(onBoard===0 && slotLeft===0){
     const save=store.load();
     if(currentLevel+1>maxUnlocked){maxUnlocked=currentLevel+1;save.maxUnlocked=maxUnlocked;store.save(save);}
-    setTimeout(()=>toast('🌟🌟 恭喜过关！解锁第 '+(currentLevel+1)+' 关'),50);
+    state.locked=true;
+    setTimeout(()=>showWinDialog(),120);
   }
 }
 function dropOnColumn(target){
@@ -835,10 +851,36 @@ function bindUI(){
   $('levelBtn').onclick=openSettings;
   $('btnCloseSet').onclick=closeSettings;
   $('btnHome').onclick=()=>location.href='index.html';
+  $('btnJump').onclick=jumpToLevel;
+  $('jumpLevelInput').addEventListener('keydown',e=>{if(e.key==='Enter')jumpToLevel();});
+  $('btnResetProgress').onclick=resetProgress;
+  $('btnNextLevel').onclick=()=>{closeWinDialog();newGame(currentLevel+1);};
+  $('btnReplayLevel').onclick=()=>{closeWinDialog();newGame(currentLevel);};
+  $('btnWinHome').onclick=()=>location.href='index.html';
   ['sound','vibration','confirmExit'].forEach(k=>{
     const el=$('sw-'+k); if(!el)return;
     el.onclick=()=>{const d=store.load();d.settings=d.settings||{};d.settings[k]=!(d.settings[k]===undefined?true:d.settings[k]);store.save(d);syncSettingsUI();};
   });
+}
+function showWinDialog(){
+  $('winText').textContent='第 '+currentLevel+' 关完成，已解锁第 '+Math.max(maxUnlocked,currentLevel+1)+' 关';
+  $('btnNextLevel').style.display='block';
+  $('winMask').className='modal-mask show';
+}
+function closeWinDialog(){$('winMask').className='modal-mask';}
+function jumpToLevel(){
+  const input=$('jumpLevelInput');
+  const level=Math.floor(Number(input.value));
+  if(!Number.isFinite(level)||level<1){toast('请输入有效的关卡号');return;}
+  closeSettings();
+  newGame(level);
+}
+function resetProgress(){
+  if(!confirm('确定要重置游戏进度吗？已解锁关卡将回到第 1 关。'))return;
+  const d=store.load();
+  d.maxUnlocked=1;
+  store.save(d);
+  location.href='index.html';
 }
 function syncSettingsUI(){
   const d=store.load(),s=d.settings||{};
