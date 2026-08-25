@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>分类蜘蛛纸牌</title>
+<style>
+:root{
+  --green:#087b40;--green-dark:#056333;--green-slot:#075e35;
+  --card:#fffdf8;--ink:#51483f;--blue:#398fe9;--gold:#efc13b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#087b40}
+body{font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;color:#fff;touch-action:none}
+button{font:inherit}
+.game{
+  width:min(100vw,540px);height:100vh;margin:auto;position:relative;overflow:hidden;
+  background:
+    radial-gradient(circle at 20% 15%,rgba(255,255,255,.035),transparent 28%),
+    linear-gradient(145deg,#087f42,#08743d 54%,#086b38);
+}
+.level{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:150px;padding:7px 0;
+  text-align:center;background:#056333;border-radius:25px;font-size:19px;font-weight:800;z-index:30;cursor:pointer}
+.settings{position:absolute;left:28px;top:20px;width:46px;height:46px;border-radius:50%;
+  border:0;background:#fff;color:#397fe5;font-size:26px;box-shadow:0 2px 4px #0002;z-index:30}
+.settings:after{content:"";width:10px;height:10px;border-radius:50%;background:#ed4545;position:absolute;top:-2px;right:-2px;border:2px solid #fff}
+
+.drawn-card{
+  position:absolute;top:0;width:76px;height:105px;border-radius:10px;background:var(--card);color:var(--ink);
+  border:3px solid #f3efe8;box-shadow:2px 3px 2px #0002;display:flex;align-items:center;justify-content:center;
+  text-align:center;cursor:default;z-index:1;
+}
+.drawn-card.category-card{border-color:#e0a900;background:linear-gradient(145deg,#ffe77a,#efbd25);color:#604700}
+.drawn-card.category-card .cat-title{font-size:20px;font-weight:900;color:#604700}
+.drawn-card.category-card .cat-sub{font-size:10px;color:#8b6a18;margin-top:4px}
+.drawn-card.top{cursor:grab;z-index:99}
+.drawn-card .name{font-size:17px}.drawn-card .icon{font-size:29px}.drawn-card .tag{position:absolute;top:5px;left:6px;font-size:9px;color:#b09f8c}
+.drawn-card.red{border-color:var(--gold)}
+.empty-drawn{position:absolute;display:none;left:calc(50% - 91.5px);top:0;width:76px;height:105px;border:2px dashed #b8f0c855;border-radius:10px}
+
+.combo{
+  position:absolute; left:90px; top:88px; display:none; align-items:center; gap:8px;
+  color:#347fe0; font-weight:bold; font-size:14px; z-index:30;
+}
+.combo.on{display:flex}
+.combo .face{font-size:28px}
+.combo strong{font-size:17px}
+.bar{width:110px;height:8px;border:1px solid #fff;background:#265c8c;border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:50%;background:#8b64da;transition:.25s}
+
+.status{position:absolute;top:145px;left:34px;right:34px;height:110px;display:flex;align-items:center;justify-content:space-between}
+.steps{width:88px;height:105px;background:#fff;border:4px solid #f6f6f4;border-radius:9px;color:#347fe0;
+  text-align:center;position:relative;overflow:hidden}
+.steps:after{content:"";position:absolute;bottom:-1px;left:0;border-left:42px solid transparent;border-right:42px solid transparent;border-bottom:20px solid #087b3f}
+.steps .h{background:#398ee9;color:#fff;font-weight:bold;padding:8px 0}.steps .n{font-size:35px;margin-top:7px}
+
+.draw-area{width:250px;height:108px;position:relative;display:flex;align-items:center;justify-content:center;gap:7px}
+.draw-pile{width:88px;height:105px;border-radius:10px;background:linear-gradient(135deg,#4da5f7,#1768d9);
+  border:4px solid #fff;box-shadow:3px 4px 0 #b8d0d8;position:relative;display:grid;place-items:center;cursor:pointer;z-index:20}
+.draw-pile:after{content:"?";font-size:50px;color:#6bc0ff55;font-weight:900}
+.draw-pile span{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:13px;font-weight:bold;color:#fff;z-index:2}
+.draw-pile.pulse{animation:pulse .35s ease}
+.drawn-stack{position:relative;left:-42px;right:auto;width:108px;height:105px;overflow:visible}
+/* 抽牌堆中被盖住的已知词：跟随被盖牌自身的左侧露出区域，不漂到牌堆外。 */
+.drawn-peek{position:absolute;top:18px;width:28px;height:70px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:13px;line-height:1;writing-mode:vertical-rl;text-orientation:mixed;white-space:nowrap;overflow:hidden;pointer-events:none;z-index:200}
+.drawn-peek.category-peek{font-weight:900;color:#604700}
+
+.drawn-card.dragging{z-index:1000!important;cursor:grabbing;box-shadow:0 18px 35px #0006;transform:scale(1.04) rotate(1deg)}
+
+.missions {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  top: 285px;
+  height: 105px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  touch-action: none;
+  z-index: 1; /* 改为 1，低于 board */
+}
+.mission{position:relative;flex:1 1 0;min-width:0;width:auto;height:105px;box-sizing:border-box;border-radius:12px;background:#6e756f66;border:3px dashed #c7cdc9;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px #ffffff12;transition:.2s;overflow:visible}
+.mission.empty{background:#6e756f66}
+.mission.locked{background:#6e756f2b;border-color:#c7cdc955;color:#c7cdc9;box-shadow:none;pointer-events:none}
+.mission.locked .lock-icon{font-size:22px;opacity:.9}
+.mission.has-card{background:transparent;border:0;box-shadow:none;color:var(--ink);overflow:visible}
+/* 组合标签:横条(下层)只贡献上半圆角,词卡圆角矩形(上层)盖住横条下半 */
+.mission .slot-title{position:absolute;top:0;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:4}
+.mission .slot-title .cat-name{font-size:12px;font-weight:500;letter-spacing:.2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:26px;width:90px;height:79px;box-sizing:border-box;border-radius:14px;background:var(--card);border:3px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:6;color:var(--ink);font-size:20px;font-weight:400;padding-top:26px;padding-bottom:4px;}
+/* 词卡里的词:变细 + 水平居中 + 支持换行(x/N 计数固定顶部,不与词重叠) */
+.mission .slot-word .name{font-weight:400;text-align:center;word-break:break-all;overflow-wrap:anywhere;line-height:1.25;max-width:100%;}
+.mission .slot-word .icon{font-weight:400;line-height:1;}
+.mission .slot-word.category-only{top:0;left:50%;transform:translateX(-50%);width:100%;height:105px;background:linear-gradient(145deg,#ffe77a,#efbd25);border:3px solid #e0a900;border-radius:14px;padding:10px}
+.mission .slot-count{position:absolute;left:8px;top:6px;color:#6e685e;font-size:12px;font-weight:400;z-index:7;line-height:1}
+.mission.over{transform:translateY(-5px) scale(1.02);box-shadow:0 0 0 4px #fff8,0 5px 16px #0004}
+.mission.done{animation:missionDone .55s ease}
+.mission.flash{animation:missionFlash .65s ease}
+.mission .category-center{font-size:20px;font-weight:900;color:#604700;text-align:center}
+/* 修复：让 mission 在拖拽时提升层级，并确保内部元素不遮挡拖拽卡片 */
+.mission.drag-over { z-index: 50; position: relative; }
+
+.board{position:absolute;left:28px;right:28px;top:415px;bottom:118px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start;overflow:hidden;z-index:2}
+.col{position:relative;min-height:430px;border-radius:12px;transition:.15s}
+.col.target{background:#ffffff0a;box-shadow:inset 0 0 0 2px #b8f1cc44}
+.card{
+  width:76px;height:105px;border-radius:12px;background:var(--card);color:var(--ink);border:3px solid #f4f1eb;
+  box-shadow:0 2px 2px #0002;position:absolute;left:calc(50% - 38px);display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:8px;user-select:none;touch-action:none;transition:top .22s,left .18s,transform .18s,box-shadow .18s;
+}
+.card.faceup{cursor:grab}.card.faceup:hover{transform:translateY(-2px)}
+.card.dragging{z-index:1000!important;cursor:grabbing;box-shadow:0 18px 35px #0006;transform:scale(1.04) rotate(1deg);transition:none}
+.card.back{background:linear-gradient(145deg,#4fa5f5,#246bd9);border-color:#eaf6ff;cursor:default}.card.known{background:var(--card);border-color:#f4f1eb;cursor:default}
+.card.back:before{content:"";width:58px;height:70px;border:2px solid #73b8fa66;border-radius:8px;transform:rotate(45deg);opacity:.55}
+.card.selected{outline:4px solid #ffd44c;transform:translateY(-5px);z-index:50!important}
+.card .tag{position:absolute;left:7px;top:6px;font-size:10px;color:#b29e8c}
+.card .name{font-size:18px}.card .icon{font-size:32px}
+.known-peek{position:absolute;left:50%;transform:translateX(-50%);width:68px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:16px;line-height:1;white-space:nowrap;overflow:hidden;pointer-events:none;z-index:200}
+.card.red{border-color:var(--gold)}
+.card.category-card{background:linear-gradient(145deg,#ffe77a,#efbd25);border-color:#e0a900;color:#604700}
+.card.category-card .cat-title{font-size:20px;font-weight:900;color:#604700}
+.card.category-card .cat-sub{font-size:10px;color:#8b6a18;margin-top:4px}
+.card.flip{animation:flip .38s ease}
+.card.collecting{animation:collect .5s ease forwards}
+.card.wrong{animation:wrongFlash .36s ease;filter:saturate(1.8) brightness(1.08);border-color:#ff3b30!important;box-shadow:0 0 0 3px #ff3b3088,0 0 22px #ff3b30aa!important}
+@keyframes wrongFlash{0%{filter:saturate(1.8) brightness(1.08)}25%{filter:saturate(3) brightness(1.15)}55%{filter:saturate(2.5) brightness(1.1)}100%{filter:saturate(1) brightness(1)}}
+
+.bottom{position:absolute;left:25px;right:25px;bottom:12px;height:90px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;z-index:20}
+.action{border:0;background:transparent;color:white;font-weight:bold;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.action .ico{width:58px;height:58px;border-radius:18px;background:#fff;display:grid;place-items:center;color:#347ee1;font-size:30px;position:relative;box-shadow:0 2px 3px #0002}
+.action:nth-child(2) .ico{color:#e88336}.action:nth-child(3) .ico{color:#7357df}.action:nth-child(4) .ico{color:#e44b55}
+.plus{position:absolute;right:-6px;top:-7px;background:#ed4545;color:#fff;border-radius:50%;width:22px;height:22px;font-size:18px;line-height:21px}
+
+.toast{position:absolute;left:50%;top:390px;transform:translateX(-50%);background:#053f25ed;padding:9px 15px;border-radius:20px;
+  font-size:13px;opacity:0;transition:.2s;z-index:2000;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* 设置弹窗 */
+.modal-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:3000}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:20px;width:82%;max-height:78vh;overflow-y:auto;color:var(--ink)}
+.modal h2{margin:0 0 14px;font-size:18px;color:#056333;text-align:center}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.slab{font-size:14px}
+.stepper{display:flex;align-items:center;gap:10px}
+.sbtn{width:28px;height:28px;border-radius:8px;background:#087b40;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sval{min-width:38px;text-align:center;font-size:15px;font-weight:700;color:#056333}
+.switch{width:46px;height:26px;border-radius:15px;background:#ccc;position:relative;cursor:pointer;transition:.2s}
+.switch .dot{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.switch.on{background:#087b40}.switch.on .dot{left:22px}
+.mbtn{border:0;border-radius:22px;font-size:15px;font-weight:700;padding:11px;cursor:pointer;margin-top:8px;width:100%}
+.mbtn.primary{background:linear-gradient(135deg,#ffb648,#ff9f43);color:#fff}
+.mbtn.ghost{background:#f0f0f0;color:#333}
+/* 关卡选择 */
+.srow.levelSelect{flex-wrap:wrap;gap:8px;justify-content:flex-start;border:0}
+.lvbtn{width:40px;height:36px;border-radius:8px;background:#087b40;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lvbtn.lock{background:#c9d2cd;color:#8a938e}
+.lvbtn.cur{outline:3px solid #ffd44c}
+
+@keyframes pulse{50%{transform:scale(1.06)}}@keyframes flip{50%{transform:rotateY(90deg);opacity:.3}}
+@keyframes collect{to{transform:translate(var(--dx),var(--dy)) scale(.15) rotate(15deg);opacity:0}}
+@keyframes missionDone{50%{transform:scale(1.08);box-shadow:0 0 25px #ffe36b99}}
+@keyframes missionFlash{0%{filter:brightness(1)}35%{filter:brightness(2.2);box-shadow:0 0 0 5px #fff,0 0 30px #ffe36b}100%{filter:brightness(1)}}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media (max-width:600px){
+ .status{left:18px;right:18px;top:120px;height:96px}
+ .steps{width:70px;height:94px;border-width:3px}.steps:after{border-left-width:32px;border-right-width:32px;border-bottom-width:17px}.steps .h{padding:6px 0;font-size:14px}.steps .n{font-size:32px;margin-top:5px}
+ .draw-area{width:205px;height:96px;gap:5px}
+ .drawn-stack{width:88px;height:94px;left:-42px}
+ .drawn-peek{top:14px;width:28px;height:66px;font-size:12px}
+ .draw-pile{width:72px;height:94px;border-width:3px}.draw-pile:after{font-size:45px}.draw-pile span{font-size:12px;bottom:4px}
+ .empty-drawn{left:calc(50% - 74px);width:68px;height:94px}
+ .missions{left:18px;right:18px;top:238px;height:94px;gap:6px}
+ .mission{height:94px;border-width:2px}
+ .mission .slot-title{width:100%;height:36px;border-width:2px;border-radius:11px 11px 0 0;padding-top:4px}.mission .slot-title .cat-name{font-size:10px}
+ .mission .slot-word{width:100%;height:70px;top:24px;border-width:2px;border-radius:11px;font-size:17px;padding-top:20px}.mission .slot-word.category-only{height:94px;border-width:2px;border-radius:11px;padding:7px}.mission .category-center{font-size:17px}.mission .slot-count{left:6px;top:5px;font-size:10px}.mission .slot-word .name{font-size:16px!important}.mission .slot-word .icon{font-size:28px!important}
+ .board{left:18px;right:18px;top:356px;bottom:116px;gap:7px}
+ .col{min-height:390px}
+ .card{width:68px;height:94px;left:calc(50% - 34px);border-width:2px;border-radius:10px;padding:6px}.card .name{font-size:16px}.card .icon{font-size:29px}.card .tag{left:5px;top:5px;font-size:9px}.known-peek{width:62px;height:18px;font-size:15px}
+ .drawn-card{width:68px;height:94px;border-width:2px;border-radius:10px}.drawn-card .name{font-size:16px}.drawn-card .icon{font-size:27px}.drawn-card .tag{top:4px;left:5px;font-size:9px}
+ .bottom{left:18px;right:18px;bottom:10px;height:78px;gap:10px}.action{font-size:13px}.action .ico{width:52px;height:52px;border-radius:16px;font-size:27px}
+}
+@media (min-height:1000px){
+ .game{width:min(100vw,620px)}
+ .level{top:26px}.settings{top:24px}
+ .status{top:155px}.missions{top:305px}.board{top:440px;bottom:145px}.toast{top:420px}
+ .combo{top:105px;}
+}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+  <div class="level" id="levelBtn">关卡 1</div>
+  <button class="settings" id="settingsBtn">⚙</button>
+
+  <div class="combo" id="combo">
+    <div class="face">😎</div>
+    <div><strong>连击 ×<span id="comboN">1</span></strong><div class="bar"><i id="comboBar"></i></div></div>
+  </div>
+
+  <div class="status">
+    <div class="steps"><div class="h">步数</div><div class="n" id="steps">0</div></div>
+    <div class="draw-area">
+      <div class="drawn-stack" id="drawnStack"></div>
+      <div class="empty-drawn" id="emptyDrawn"></div>
+      <div class="draw-pile" id="drawPile"><span id="deckText">剩余 32 张</span></div>
+    </div>
+  </div>
+
+  <div class="missions" id="missions"></div>
+  <div class="toast" id="toast"></div>
+  <div class="board" id="board"></div>
+
+  <div class="bottom">
+    <button class="action" id="hintBtn"><div class="ico">💡<span class="plus">+</span></div>提示</button>
+    <button class="action" id="collectBtn"><div class="ico">▣<span class="plus">+</span></div>收牌</button>
+    <button class="action" id="shuffleBtn"><div class="ico">↻<span class="plus">+</span></div>洗牌</button>
+    <button class="action" id="jokerBtn"><div class="ico">🃏<span class="plus">+</span></div>鹅牌</button>
+  </div>
+</div>
+
+<div class="modal-mask" id="setMask">
+  <div class="modal">
+    <h2>游戏设置</h2>
+    <div class="srow"><div class="slab">音效<span class="hint">操作、提示与结果音效</span></div><div class="switch on" id="sw-sound"><div class="dot"></div></div></div>
+    <div class="srow"><div class="slab">震动反馈<span class="hint">支持的设备提供轻微反馈</span></div><div class="switch on" id="sw-vibration"><div class="dot"></div></div></div>
+    <div class="srow"><div class="slab">确认退出<span class="hint">离开正在进行的关卡时确认</span></div><div class="switch on" id="sw-confirmExit"><div class="dot"></div></div></div>
+    <div class="srow"><div class="slab">当前进度<span class="hint" id="progressInfo">已解锁第 1 关</span></div></div>
+    <button class="mbtn primary" id="btnHome">返回主菜单</button>
+    <button class="mbtn ghost" id="btnCloseSet">关闭</button>
+  </div>
+</div>
+
+<script>
+// ===== mini CommonJS loader(加载 data/words.js 与 utils/levels.js) =====
+const __modCache = {};
+function resolvePath(from,to){const s=from.split('/').slice(0,-1);for(const p of to.split('/')){if(p==='.'||p==='')continue;if(p==='..'){s.pop();continue;}s.push(p);}return s.join('/');}
+function ensureModule(name,srcs){if(__modCache[name])return __modCache[name].exports;const m={exports:{}};__modCache[name]=m;const f=new Function('module','exports','require','window',srcs[name]+'\n//# sourceURL='+name);f(m,m.exports,(r)=>ensureModule(resolvePath(name,r),srcs),window);return m.exports;}
+
+const DEF_SET={themeCap:8,minNeed:3,maxNeed:7,stepCap:300,colCap:5,allowEmoji:true};
+const $=id=>document.getElementById(id);
+const store={load(){try{return JSON.parse(localStorage.getItem('spider_save'))||{maxUnlocked:1,settings:Object.assign({},DEF_SET)}}catch(e){return{maxUnlocked:1,settings:Object.assign({},DEF_SET)}}},save(d){try{localStorage.setItem('spider_save',JSON.stringify(d))}catch(e){}}};
+
+let WORDS, L, currentLevel=1, maxUnlocked=1;
+const state={steps:0,combo:0,stock:[],drawn:[],cols:[],missions:{},missionCards:[],drag:null,locked:false,dragHandlersInstalled:false,flashSlots:new Set(),nextGroupId:1,finishTopic:0};
+const icons={}; // 文字主题图标映射(主题名->图标),空则用文字
+
+function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+
+async function boot(){
+  const srcs={};
+  // word1.js 是清理后的词库包装层，它仍需读取原始 words.js。
+  // 因此这里必须同时预加载 words.js，否则启动时 require('./words.js') 会失败，
+  // 导致 boot() 中断，表现为“点击开始后页面卡住且没有发牌”。
+  for(const k of ['data/words.js','data/word1.js','utils/levels.js']) srcs[k]=await(await fetch(k)).text();
+  WORDS=ensureModule('data/word1.js',srcs);
+  L=ensureModule('utils/levels.js',srcs);
+  const catById={};WORDS.forEach(w=>catById[w.id]=w);
+  window.WORDS=WORDS;window.catById=catById;
+  bindUI();
+  const save=store.load();maxUnlocked=Math.max(1,save.maxUnlocked||1);const requested=Number(new URLSearchParams(location.search).get('level'));currentLevel=(requested>=1&&requested<=maxUnlocked)?requested:maxUnlocked;
+  newGame(currentLevel);
+}
+
+function getSettings(){return store.load().settings}
+function iconFor(name){return icons[name]||''}
+
+// 依据关卡配置生成一副牌:每个主题 = 1分类卡 + N词卡
+function makeDeck(level){
+  const all=[];
+  const catById=window.catById;
+  level.themeNames.forEach(tn=>{
+    const cat=catById[tn.id]; const need=level.require[tn.id];
+    const words=(cat.w).slice(0,need); // 取 need 个
+    all.push({id:uid(),type:'category',cat:tn.t,name:tn.t,face:true,kind:cat.kind});
+    words.forEach(w=>all.push({id:uid(),type:'word',cat:tn.t,name:w,face:true,kind:cat.kind}));
+  });
+  return all.sort(()=>Math.random()-.5);
+}
+function randomInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+function randomDistribution(total,count){
+  // 5列时采用“阶梯式”分配，而不是完全随机撒牌：尽量让第5列最厚，
+  // 前4列保持较轻；只有前4列每列不超过7张仍可实现时才使用这一策略。
+  // 例如：30 → 4/5/6/7/8，31 → 5/5/6/7/8。
+  // 当总牌数继续增加、前4列无法都压在7张以内时，自动以新的平均值
+  // 重新计算5列，仍尽量保持相邻列相差1的阶梯形状。
+  if(count===5){
+    // 前四列最多各放7张；总牌数不超过28时，第5列必须完全留空。
+    // 只有超过28张，才把多出来的牌分配到第5列。
+    if(total<=28){
+      const parts=Array(5).fill(0);
+      const base=Math.floor(total/4),rem=total%4;
+      for(let i=0;i<4;i++)parts[i]=base+(i>=4-rem?1:0);
+      return parts;
+    }
+    const x=Math.floor((total-10)/5);
+    const base=Math.max(0,x);
+    const parts=[base,base+1,base+2,base+3,base+4];
+    let remain=total-parts.reduce((a,b)=>a+b,0);
+    // 把余数从左往右补，保持第5列始终不小于前面的列。
+    for(let i=0;i<5&&remain>0;i++,remain--)parts[i]++;
+    // 低牌量时避免出现0列；重新均衡到至少1张。
+    while(parts.some(v=>v<1)){
+      const i=parts.findIndex(v=>v<1);if(i<0)break;
+      const j=parts.findIndex((v,k)=>k>i&&v>1);if(j<0)break;
+      parts[i]++;parts[j]--;
+    }
+    return parts;
+  }
+  // 4列（前两关）保持近似均匀，避免改变教学关卡的牌量结构。
+  const parts=Array(count).fill(Math.floor(total/count));
+  for(let i=0;i<total%count;i++)parts[i]++;
+  return parts;
+}
+function newGame(levelId){
+  currentLevel=levelId;
+  const s0=getSettings();
+  const level=L.makeLevel(levelId,{
+    themeCount:s0.themeCap,minNeed:s0.minNeed,maxNeed:s0.maxNeed,
+    stepCap:s0.stepCap,colCount:s0.colCap,allowEmoji:s0.allowEmoji,
+  });
+  const colCount=Math.max(4,Math.min(5,level.colCount)); // 默认4,可到5
+  // 主题数量与同时可用的分类槽数量分离：界面永远显示5个槽，前期第5槽锁定。
+  // 到10个主题这一档（约第8关）再开放第5槽，后续始终保持5槽。
+  const activeSlotCount=level.themeNames.length>=10?5:4;
+  const slotCount=5;
+  const all=makeDeck(level);
+  // 分类卡与词卡完全混合发牌：分类卡不再强制全部留在桌面。
+  // 约60%的完整牌组进入桌面，其余进入抽牌堆；只保证至少一张分类卡初始可见。
+  const shuffled=all.slice();
+  for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  // 关卡可指定桌面牌数量；未指定时沿用约60%的通用规则。
+  const tableCount=Math.min(all.length-1,Math.max(colCount,level.tableCount ?? Math.round(all.length*0.6)));
+  const table=shuffled.slice(0,tableCount);
+  state.stock=shuffled.slice(tableCount);
+  state.steps=level.steps; state.combo=0; state.drawn=[]; state.missions={}; state.missionCards=Array(slotCount).fill(null);
+  state.activeSlotCount=activeSlotCount;
+  state.drag=null; state.flashSlots=new Set(); state.nextGroupId=1; state.locked=false; state.finishTopic=slotCount;
+
+  // 上桌牌随机分列(每列顶部一张 faceUp)
+  const distribution=randomDistribution(table.length,colCount);
+  state.cols=[];
+  for(let c=0;c<colCount;c++)state.cols.push([]);
+  const tableShuf=table.slice();for(let i=tableShuf.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[tableShuf[i],tableShuf[j]]=[tableShuf[j],tableShuf[i]];}
+  let cursor=0;
+  for(let c=0;c<colCount;c++){
+    for(let r=0;r<distribution[c];r++){
+      const card=tableShuf[cursor++];
+      if(!card)break;
+      card.face=(r===distribution[c]-1);card.known=card.face;
+      state.cols[c].push(card);
+    }
+  }
+  // 只保证至少一张分类卡处于初始明牌位置，不再保证所有分类卡上桌。
+  if(!state.cols.some(col=>col.at(-1)?.type==='category')){
+    const ci=state.cols.findIndex(col=>col.some(card=>card.type==='category'));
+    if(ci>=0){
+      const col=state.cols[ci],pi=col.findIndex(card=>card.type==='category'),last=col.length-1;
+      [col[pi],col[last]]=[col[last],col[pi]];
+      // 开局重新确定列顶时，不能继承之前临时的 known 状态。
+      // 否则原先的列顶牌被压回底下后仍会显示“已知词”，造成偶发开局信息泄露。
+      col.forEach((card,i)=>{card.face=(i===col.length-1);card.known=card.face;});
+    }
+  }
+  state.stockNeed=level.require; // {tid:n} 用于判定收集满
+  state.topicNeed={}; level.themeNames.forEach(tn=>state.topicNeed[tn.t]=level.require[tn.id]);
+  rebuildGroups();
+  applyLayout(colCount,slotCount);
+  render();
+}
+function applyLayout(colCount,slotCount){
+  const missions=$('missions');
+  missions.style.display='grid';
+  // UI始终预留5个位置；activeSlotCount决定当前有几个可用。
+  missions.style.gridTemplateColumns='repeat(5,minmax(0,1fr))';
+  missions.style.gap='6px';
+  $('board').style.gridTemplateColumns='repeat('+colCount+',1fr)';
+  $('levelBtn').textContent='关卡 '+currentLevel;
+}
+function render(){
+  $('steps').textContent=state.steps;
+  $('deckText').textContent='剩余 '+state.stock.length+' 张';
+  renderMissions();renderDrawn();renderBoard();
+  $('combo').classList.toggle('on',state.combo>0);
+  $('comboN').textContent=Math.max(1,state.combo);
+  $('comboBar').style.width=Math.min(100,35+state.combo*12)+'%';
+}
+function renderMissions(){
+  const box=$('missions');box.innerHTML='';
+  // 永远渲染5个槽位。未解锁的槽位是真正的 locked 槽，而不是缺少一个DOM节点。
+  for(let si=0;si<5;si++){
+    if(si>=state.activeSlotCount){
+      const lock=document.createElement('div');
+      lock.className='mission locked';
+      lock.dataset.slot=si;
+      lock.innerHTML='<div class="lock-icon">🔒</div>';
+      box.appendChild(lock);
+      continue;
+    }
+    const bucket=state.missionCards[si],placed=!!bucket?.categoryCard,got=bucket?.words?.length||0,latest=bucket?.words?.at(-1);
+    const need=state.topicNeed[bucket?.cat]||7;
+    const el=document.createElement('div');
+    el.className='mission '+(placed?'has-card':'empty')+(state.flashSlots.has(si)?' flash':'');
+    el.dataset.slot=si;
+    if(placed){
+      // 顶部横条页眉(只放主题名);进度 1/N 放回卡面(.slot-word)左上角
+      const titleHtml=got>0?`<div class="slot-title"><span class="cat-name">${bucket.cat}</span></div>`:'';
+      let bodyHtml='';
+      if(got===0){
+        bodyHtml=`<div class="slot-word category-only"><div class="category-center">${bucket.cat}</div><div class="slot-count">0/${need}</div></div>`;
+      }else{
+        const word=latest?.name||'';
+        const iconHtml=latest&&latest.kind==='emoji'?`<div class="icon" style="font-size:32px;line-height:1">${word}</div>`
+          :`<div class="name" style="font-size:18px;">${word}</div>`;
+        bodyHtml=`<div class="slot-word"><div class="slot-count">${got}/${need}</div>${iconHtml}</div>`;
+      }
+      el.innerHTML=titleHtml+bodyHtml;
+    }
+    el.addEventListener('pointerup',e=>dropOnMission(si,e));
+    box.appendChild(el);
+  }
+  if(state.flashSlots.size){state.flashSlots.clear();setTimeout(()=>render(),700);}
+}
+function renderDrawn(){
+  const box=$('drawnStack');box.innerHTML='';
+  $('emptyDrawn').style.display=state.drawn.length?'none':'block';
+  const first=Math.max(0,state.drawn.length-3);
+  const visible=state.drawn.slice(first);
+  visible.forEach((card,localIndex)=>{
+    const actualIndex=first+localIndex;
+    const covered=actualIndex!==state.drawn.length-1;
+    const el=document.createElement('div');
+    el.className='drawn-card '+(actualIndex===state.drawn.length-1?'top':'');
+    if(card.type==='category')el.classList.add('category-card');
+    el.style.left=(localIndex*28)+'px';el.style.zIndex=localIndex+1;
+    // 被盖住的已知词卡：卡面本身不再塞词，词条移动到牌与牌之间的侧边间隙。
+    el.innerHTML=covered&&card.known&&(card.type==='word'||card.type==='category') ? '' : cardInner(card,true,false);
+    if(actualIndex===state.drawn.length-1) attachDrag(el,{type:'drawn',index:actualIndex,card});
+    box.appendChild(el);
+    if(covered&&card.known&&card.type==='word'){
+      const peek=document.createElement('div');
+      peek.className='drawn-peek';
+      peek.textContent=card.name;
+      if(card.type==='category')peek.classList.add('category-peek');
+      peek.style.left=(localIndex*28)+'px';
+      peek.style.zIndex=500+localIndex;
+      box.appendChild(peek);
+    }
+  });
+}
+function cardInner(card,isDrawn,covered=false){
+  if(card.type==='category') return `<div><div class="cat-title">${card.cat}</div><div class="cat-sub">分类卡</div></div>`;
+  if(card.kind==='emoji') return `<div class="icon" style="font-size:32px;line-height:1">${card.name}</div>`;
+  return `${covered?'':`<span class="tag">${card.cat}</span>`}<div class="name">${card.name}</div>`;
+}
+function renderBoard(){
+  const board=$('board');board.innerHTML='';
+  state.cols.forEach((col,ci)=>{
+    const wrap=document.createElement('div');wrap.className='col';wrap.dataset.col=ci;
+    col.forEach((card,ri)=>{
+      const el=document.createElement('div');
+      const covered=ri<col.length-1;
+      const known=!!card.known;
+      el.className='card '+(card.face?'faceup':'back')+(known&&!card.face?' known':'');
+      if(card.face&&card.type==='category')el.classList.add('category-card');
+      if(card.face){el.innerHTML=(covered&&card.type==='word'?'':cardInner(card,false,false));attachDrag(el,{type:'tableau',col:ci,row:ri,card});}
+      else if(known){el.innerHTML='';}
+      else el.innerHTML='';
+      el.style.top=(ri*23)+'px';el.style.zIndex=ri+1;wrap.appendChild(el);
+      if(covered&&card.known&&(card.type==='word'||card.type==='category')){
+        const peek=document.createElement('div');
+        peek.className='known-peek';
+        peek.textContent=card.name;
+        if(card.type==='category')peek.classList.add('category-peek');
+        peek.style.top=(ri*23+2)+'px';
+        wrap.appendChild(peek);
+      }
+    });
+    board.appendChild(wrap);
+  });
+}
+function getMovableRun(col,index){
+  const card=col[index];if(!card||!card.face||card.type!=='word')return{start:index,end:index+1};
+  let start=index,end=index+1;
+  while(start>0){const x=col[start-1];if(!x.face||x.type!=='word'||x.cat!==card.cat)break;start--;}
+  while(end<col.length){const x=col[end];if(!x.face||x.type!=='word'||x.cat!==card.cat)break;end++;}
+  return{start,end};
+}
+function rebuildGroups(){
+  state.nextGroupId=1;
+  state.cols.forEach(col=>{col.forEach(c=>delete c.groupId);let i=0;while(i<col.length){const c=col[i];if(c.face&&c.type==='word'){let j=i+1;while(j<col.length&&col[j].face&&col[j].type==='word'&&col[j].cat===c.cat)j++;if(j-i>=2){const gid=state.nextGroupId++;for(let k=i;k<j;k++)col[k].groupId=gid;}i=j;}else i++;}});
+}
+function attachDrag(el,data){
+  el.addEventListener('pointerdown',e=>{
+    if(state.locked||!data.card.face||state.drag)return;
+    let moving=[data.card],elements=[el];
+    if(data.type==='tableau'){
+      const col=state.cols[data.col],card=data.card;
+      if(!card.face){toast('未知牌不能移动');return;}
+      if(card.type==='category'){moving=[card];elements=[el];}
+      else{const run=getMovableRun(col,data.row);moving=col.slice(run.start,run.end);elements=[...document.querySelectorAll(`.col[data-col="${data.col}"] .card`)].filter((_,i)=>i>=run.start&&i<run.end);}
+    }
+    e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(_){}
+    const rect=el.getBoundingClientRect();
+    state.drag={...data,el,elements,moving,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};
+    // 提升到最顶层(fixed+z高),脱离 .board stacking context,避免被槽位层盖住
+    elements.forEach(x=>{
+      x.classList.add('dragging');
+      x.style.pointerEvents='none';
+      const r=x.getBoundingClientRect();
+      // 记录恢复用原始样式
+      x.dataset._op=x.style.position;x.dataset._ol=x.style.left;x.dataset._ot=x.style.top;x.dataset._oz=x.style.zIndex;
+      x.style.position='fixed';x.style.left=r.left+'px';x.style.top=r.top+'px';
+      x.style.margin=0;x.style.transform='';x.style.zIndex=9999;
+      x.dataset._x=r.left;x.dataset._y=r.top;
+    });
+    document.querySelectorAll('.mission').forEach(x=>{x.classList.remove('over');x.classList.remove('drag-over');});
+    document.querySelectorAll('.col').forEach(x=>x.classList.add('target'));
+    installGlobalDragHandlers();
+  });
+}
+function installGlobalDragHandlers(){
+  if(state.dragHandlersInstalled)return;
+  state.dragHandlersInstalled=true;
+  document.addEventListener('pointermove',e=>{
+    const d=state.drag;if(!d||e.pointerId!==d.pointerId)return;
+    e.preventDefault();
+    const dx=e.clientX-d.startX,dy=e.clientY-d.startY;
+    d.elements.forEach(x=>{x.style.left=(Number(x.dataset._x)+dx)+'px';x.style.top=(Number(x.dataset._y)+dy)+'px';});
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    const mission=under?.closest('.mission');
+    document.querySelectorAll('.mission').forEach(x=>{
+      x.classList.toggle('over',x===mission);
+      x.classList.toggle('drag-over',x===mission);
+    });
+  },{passive:false});
+  document.addEventListener('pointerup',e=>{
+    const d=state.drag;if(!d||e.pointerId!==d.pointerId)return;
+    e.preventDefault();handleDropAt(e.clientX,e.clientY,e);
+  },{passive:false});
+  document.addEventListener('pointercancel',e=>{
+    const d=state.drag;if(!d||e.pointerId!==d.pointerId)return;
+    finishDrag();state.drag=null;render();
+  });
+}
+function handleDropAt(x,y,e){
+  if(!state.drag)return;
+  const d=state.drag;
+  const under=document.elementFromPoint(x,y);
+  const mission=under?.closest('.mission');
+  const col=under?.closest('.col');
+  // 先判断落点，再决定是否恢复原位。错误落点必须让牌留在“试图摆放”的位置播放红色动画。
+  if(mission) { dropOnMission(+mission.dataset.slot,e); return; }
+  if(col) { dropOnColumn(+col.dataset.col); return; }
+  finishDrag();state.drag=null;render();toast('已取消移动');
+}
+function finishDrag(){
+  if(!state.drag)return;
+  state.drag.elements?.forEach(x=>{
+    x.classList.remove('dragging');
+    x.style.pointerEvents='';
+    // 恢复原始定位样式
+    x.style.position=x.dataset._op||'';x.style.left=x.dataset._ol||'';x.style.top=x.dataset._ot||'';x.style.zIndex=x.dataset._oz||'';x.style.margin='';
+    delete x.dataset._op;delete x.dataset._ol;delete x.dataset._ot;delete x.dataset._oz;delete x.dataset._x;delete x.dataset._y;
+  });
+  document.querySelectorAll('.mission').forEach(x=>{x.classList.remove('over');x.classList.remove('drag-over');});
+  document.querySelectorAll('.col').forEach(x=>x.classList.remove('target'));
+}
+function dropOnMission(slotIndex){
+  if(!state.drag)return;
+  if(slotIndex>=state.activeSlotCount){
+    finishDrag();state.drag=null;render();toast('🔒 第5个分类槽将在后续关卡解锁');return;
+  }
+  const d=state.drag,card=d.card,slot=state.missionCards[slotIndex];
+  if(card.type==='category'){
+    if(slot?.categoryCard){wrong(d.el);toast('这个分类槽已经有分类卡了');return;}
+    let moved=d.type==='drawn'?state.drawn.pop():null;
+    if(d.type!=='drawn'){const source=state.cols[d.col];moved=source.splice(d.row,1)[0];reveal(d.col);rebuildGroups();}
+    state.missionCards[slotIndex]={categoryCard:moved,cat:moved.cat,words:[]};commitMove();
+    if(!autoShuffleIfStuck())toast('分类卡已放入槽位，现在可以拖对应词卡上来');
+    return;
+  }
+  if(!slot?.categoryCard){wrong(d.el);toast('请先把分类卡拖到这个灰色槽位');return;}
+  const cat=slot.cat;if(card.cat!==cat){wrong(d.el);toast('这张词卡不属于“'+cat+'”分类');return;}
+  let moved=[];
+  if(d.type==='drawn')moved=[state.drawn.pop()];
+  else{const source=state.cols[d.col],start=source.findIndex(x=>x.id===d.card.id),run=getMovableRun(source,start);moved=source.slice(run.start,run.end);state.cols[d.col]=source.slice(0,run.start).concat(source.slice(run.end));reveal(d.col);rebuildGroups();}
+  moved.forEach(c=>addMission(slotIndex,c));commitMove();
+  if(!autoShuffleIfStuck())toast(state.missionCards[slotIndex]?'词卡已放入“'+cat+'”分类卡':'“'+cat+'”分类完成！');
+}
+function addMission(slotIndex,card){
+  const bucket=state.missionCards[slotIndex];if(!bucket||card.type!=='word')return;
+  bucket.words.push(card);
+  const need=state.topicNeed[bucket.cat]||7;
+  if(bucket.words.length>=need){
+    state.missionCards[slotIndex]=null;state.flashSlots.add(slotIndex);
+    setTimeout(()=>toast('“'+bucket.cat+'”整组完成！'),40);
+    checkWin();
+  }
+}
+function checkWin(){
+  // 过关需:桌上(列+抽出+抽牌堆)无牌 且 所有分类槽都已消除(missionCards 全空)
+  const onBoard=state.cols.reduce((n,c)=>n+c.length,0)+state.drawn.length+state.stock.length;
+  const slotLeft=state.missionCards.filter(Boolean).length;
+  if(onBoard===0 && slotLeft===0){
+    const save=store.load();
+    if(currentLevel+1>maxUnlocked){maxUnlocked=currentLevel+1;save.maxUnlocked=maxUnlocked;store.save(save);}
+    setTimeout(()=>toast('🌟🌟 恭喜过关！解锁第 '+(currentLevel+1)+' 关'),50);
+  }
+}
+function dropOnColumn(target){
+  if(!state.drag)return;const d=state.drag;
+  if(d.type==='drawn'){
+    const card=state.drawn.at(-1);if(!card){state.drag=null;render();return;}
+    if(card.type!=='word'){wrong(d.el);toast('主题卡不能放到下面牌堆上');return;}
+    if(!canPlace(card,target)){wrong(d.el);toast('只能放到空牌堆或相同分类的词卡上');return;}
+    state.drawn.pop();state.cols[target].push(card);rebuildGroups();
+  }else{
+    if(d.col===target){state.drag=null;render();return;}
+    const source=state.cols[d.col],start=source.findIndex(x=>x.id===d.card.id);if(start<0){state.drag=null;render();return;}
+    const run=d.card.type==='word'?getMovableRun(source,start):{start,end:start+1},cards=source.slice(run.start,run.end);
+    if(cards.some(x=>!x.face)){wrong(d.el);toast('未知牌不能移动');return;}
+    const top=state.cols[target].at(-1);
+    if(top&&top.type==='category'){wrong(d.el);toast('主题卡不能叠放任何牌');return;}
+    if(top&&(d.card.type!=='word'||top.type!=='word'||top.cat!==d.card.cat)){wrong(d.el);toast('只能叠放到相同分类的词卡上');return;}
+    state.cols[d.col]=source.slice(0,run.start).concat(source.slice(run.end));state.cols[target].push(...cards);reveal(d.col);rebuildGroups();
+  }
+  commitMove();
+  if(!autoShuffleIfStuck())toast('移动成功');
+}
+function commitMove(){
+  state.steps=Math.max(0,state.steps-1);state.combo++;state.drag=null;render();
+  if(state.steps<=0){failGame('步数用尽，挑战失败！');}
+}
+function commitWrongMove(){
+  state.steps=Math.max(0,state.steps-1);state.combo=0;state.drag=null;render();
+  toast('移动失误，扣 1 步');
+  if(state.steps<=0)failGame('步数用尽，挑战失败！');
+}
+function failGame(message){
+  if(state.locked)return;
+  state.locked=true;state.drag=null;render();toast(message);
+}
+function canPlace(card,target){
+  if(!card||card.type!=='word')return false;
+  const top=state.cols[target].at(-1);
+  if(!top)return true;
+  if(top.type!=='word')return false;
+  return top.cat===card.cat;
+}
+// 判断当前场上是否至少存在一个可以执行的“拖牌”动作。
+// 抽牌堆中的牌也只检查最上面一张；分类卡只能进入空分类槽，词卡可进入空列、同分类词卡列或对应分类槽。
+function hasAnyCardMove(){
+  if(state.locked)return false;
+  const activeMissions=state.missionCards.slice(0,state.activeSlotCount);
+  const topDrawn=state.drawn.at(-1);
+  if(topDrawn){
+    if(topDrawn.type==='category' && activeMissions.some(s=>!s))return true;
+    if(topDrawn.type==='word'){
+      if(activeMissions.some(s=>s?.cat===topDrawn.cat))return true;
+      if(state.cols.some(c=>canPlace(topDrawn,state.cols.indexOf(c))))return true;
+    }
+  }
+  for(let ci=0;ci<state.cols.length;ci++){
+    const col=state.cols[ci],index=col.length-1,card=col[index];
+    if(!card||!card.face)continue;
+    if(card.type==='category'){
+      if(activeMissions.some(s=>!s))return true;
+      continue;
+    }
+    if(activeMissions.some(s=>s?.cat===card.cat))return true;
+    for(let ti=0;ti<state.cols.length;ti++){
+      if(ti===ci)continue;
+      if(canPlace(card,ti))return true;
+    }
+  }
+  return false;
+}
+function autoShuffleIfStuck(){
+  if(state.locked)return false;
+  const remaining=state.stock.length+state.drawn.length+state.cols.reduce((n,c)=>n+c.length,0);
+  // 抽牌堆还有牌时，玩家仍可通过抽牌推进游戏，不能把“暂时无移动”判定为死局。
+  if(remaining===0 || state.stock.length>0 || hasAnyCardMove())return false;
+  autoShuffle();
+  return true;
+}
+function autoShuffle(){
+  const remaining=[...state.stock,...state.drawn,...state.cols.flat()];
+  remaining.sort(()=>Math.random()-.5);
+  const colCount=state.cols.length;
+  // 真正死局时重新混合全部剩余牌；分类卡同样可以进入新的牌堆或抽牌堆。
+  const tableCount=Math.max(colCount,Math.min(remaining.length,Math.round(remaining.length*.6)));
+  const table=remaining.slice(0,tableCount);
+  const stock=remaining.slice(tableCount);
+  const distribution=randomDistribution(table.length,colCount);
+  state.stock=stock;state.drawn=[];state.cols=[];for(let c=0;c<colCount;c++)state.cols.push([]);
+  let cursor=0;
+  for(let c=0;c<colCount;c++){
+    for(let r=0;r<distribution[c];r++){
+      const card=table[cursor++];if(!card)break;
+      card.face=(r===distribution[c]-1);card.known=card.face;delete card.groupId;
+      state.cols[c].push(card);
+    }
+  }
+  // 重新洗牌后也只保证至少一张分类卡可见，其他分类卡继续隐藏。
+  if(!state.cols.some(col=>col.at(-1)?.type==='category')){
+    const ci=state.cols.findIndex(col=>col.some(card=>card.type==='category'));
+    if(ci>=0){
+      const col=state.cols[ci],pi=col.findIndex(card=>card.type==='category'),last=col.length-1;
+      [col[pi],col[last]]=[col[last],col[pi]];
+      col.forEach((card,i)=>{card.face=(i===col.length-1);card.known=card.known||card.face;});
+    }
+  }
+  rebuildGroups();state.locked=false;state.steps=Math.max(0,state.steps-1);state.combo=0;render();
+  if(state.steps<=0){failGame('步数用尽，挑战失败！');return;}
+  toast('当前无可移动牌，已自动洗牌');
+}
+function reveal(col){
+  if(col==null)return;
+  const c=state.cols[col].at(-1);
+  if(c&&!c.face){c.face=true;c.known=true;setTimeout(()=>render(),100);}
+}
+function wrong(el){
+  if(state.locked)return;
+  // 错误落点：松手后立即脱离拖拽状态，不再跟随鼠标；从“当前错误落点”直接开始闪红并回到原位。
+  const d=state.drag;
+  const elements=d?.elements||[];
+  const original=elements.map(x=>{
+    const r=x.getBoundingClientRect();
+    return {
+      el:x,
+      fromX:r.left,fromY:r.top,
+      toX:Number(x.dataset._x),toY:Number(x.dataset._y),
+      op:x.dataset._op||'',ol:x.dataset._ol||'',ot:x.dataset._ot||'',oz:x.dataset._oz||''
+    };
+  });
+  state.steps=Math.max(0,state.steps-1);state.combo=0;state.locked=true;
+  // 立刻清掉拖拽状态：后续 pointermove 不再更新这些牌的位置。
+  state.drag=null;
+  $('steps').textContent=state.steps;
+  toast('移动失误，扣 1 步');
+  document.querySelectorAll('.mission').forEach(x=>{x.classList.remove('over');x.classList.remove('drag-over');});
+  document.querySelectorAll('.col').forEach(x=>x.classList.remove('target'));
+  // 关键：当前牌已经是 fixed，所以直接从错误落点向原始屏幕坐标移动。
+  // 不恢复 position/left/top，也不 render，避免 CSS transition 被重置后从右下角或顶部“瞬移”。
+  original.forEach(({el,fromX,fromY,toX,toY})=>{
+    el.style.pointerEvents='none';
+    el.style.position='fixed';
+    el.style.left=fromX+'px';
+    el.style.top=fromY+'px';
+    el.style.margin='0';
+    el.style.zIndex='9999';
+    el.style.transition='none';
+    el.classList.remove('wrong');
+    void el.offsetWidth;
+    el.classList.add('wrong');
+    // 红色闪烁和回位同时开始。
+    requestAnimationFrame(()=>{
+      el.style.transition='left .30s cubic-bezier(.22,.8,.28,1), top .30s cubic-bezier(.22,.8,.28,1)';
+      el.style.left=toX+'px';
+      el.style.top=toY+'px';
+    });
+  });
+  // 允许玩家立即操作其它牌；错误牌自身 pointer-events:none。
+  state.locked=false;
+  setTimeout(()=>{
+    original.forEach(({el,op,ol,ot,oz})=>{
+      // 动画结束后先清掉 transition，再恢复原始定位。
+      // 这是修复“回位后又从右下角飞回去 / 下次拖牌从屏幕顶部掉下来”的关键。
+      el.style.transition='none';
+      el.classList.remove('wrong');
+      el.classList.remove('dragging');
+      el.style.pointerEvents='';
+      el.style.position=op;el.style.left=ol;el.style.top=ot;el.style.zIndex=oz;el.style.margin='';
+      void el.offsetWidth;
+      el.style.transition='';
+      delete el.dataset._op;delete el.dataset._ol;delete el.dataset._ot;delete el.dataset._oz;delete el.dataset._x;delete el.dataset._y;
+    });
+    if(state.steps<=0)failGame('步数用尽，挑战失败！');
+  },330);
+}
+function drawCard(){
+  if(state.locked)return;
+  if(!state.stock.length){toast('抽牌堆已经空了');return;}
+  const pile=$('drawPile');pile.classList.remove('pulse');void pile.offsetWidth;pile.classList.add('pulse');
+  const card=state.stock.pop();card.face=true;card.known=true;state.drawn.push(card);state.steps=Math.max(0,state.steps-1);state.combo=0;render();
+  if(state.steps<=0){failGame('步数用尽，挑战失败！');return;}
+  if(!autoShuffleIfStuck())toast(card.type==='category'?'抽到分类卡：拖到顶部灰色槽位':'抽到词卡：只能移动最上面一张');
+}
+function hint(){
+  const top=state.drawn.at(-1);
+  if(top?.type==='category'){toast('提示：把这张分类卡拖到任意空的灰色分类槽');return;}
+  if(top){const has=state.missionCards.some(s=>s?.cat===top.cat);toast(has?'提示：把抽牌堆最上面的词卡拖到相同分类的牌上':'提示：先找到“'+top.cat+'”分类卡并放入任意灰色槽');return;}
+  toast('提示：分类卡可以放入任意空灰色槽');
+}
+function collect(){
+  const ready=state.missionCards.filter(Boolean).filter(s=>(s.words?.length||0)>=(state.topicNeed[s.cat]||7));
+  toast(ready.length?ready.map(x=>'“'+x.cat+'”').join('、')+'分类可以收集！':'请先把词卡拖到已放置的分类卡上，凑齐所需数量');
+}
+function shuffle(){
+  const remaining=[...state.stock,...state.drawn,...state.cols.flat()];
+  remaining.sort(()=>Math.random()-.5);
+  const tableCount=state.cols.reduce((n,c)=>n+c.length,0);
+  const colCount=state.cols.length;
+  const distribution=randomDistribution(tableCount,colCount);
+  const table=remaining.slice(0,tableCount);
+  state.stock=remaining.slice(tableCount);
+  state.drawn=[];
+  state.cols=[];for(let c=0;c<colCount;c++)state.cols.push([]);
+  state.nextGroupId=1;
+  let cursor=0;
+  for(let c=0;c<colCount;c++){
+    for(let r=0;r<distribution[c];r++){
+      const card=table[cursor++];if(!card)break;
+      card.face=(r===distribution[c]-1);card.known=card.face;delete card.groupId;
+      state.cols[c].push(card);
+    }
+  }
+  rebuildGroups();state.locked=false;state.steps=Math.max(0,state.steps-1);state.combo=0;render();
+  if(state.steps<=0){failGame('步数用尽，挑战失败！');return;}
+  toast('已洗牌：抽牌堆、抽出牌和所有牌堆全部重新洗牌');
+}
+function joker(){toast('当前牌库无额外万能牌');}
+
+// ===== 设置 =====
+function bindUI(){
+  $('drawPile').onclick=drawCard;
+  $('hintBtn').onclick=hint;
+  $('collectBtn').onclick=collect;
+  $('shuffleBtn').onclick=shuffle;
+  $('jokerBtn').onclick=joker;
+  $('settingsBtn').onclick=openSettings;
+  $('levelBtn').onclick=openSettings;
+  $('btnCloseSet').onclick=closeSettings;
+  $('btnHome').onclick=()=>location.href='index.html';
+  ['sound','vibration','confirmExit'].forEach(k=>{
+    const el=$('sw-'+k); if(!el)return;
+    el.onclick=()=>{const d=store.load();d.settings=d.settings||{};d.settings[k]=!(d.settings[k]===undefined?true:d.settings[k]);store.save(d);syncSettingsUI();};
+  });
+}
+function syncSettingsUI(){
+  const d=store.load(),s=d.settings||{};
+  ['sound','vibration','confirmExit'].forEach(k=>{const v=s[k]===undefined?true:!!s[k];$('sw-'+k).className='switch'+(v?' on':'');});
+  $('progressInfo').textContent='已解锁第 '+Math.max(1,d.maxUnlocked||1)+' 关';
+}
+function openSettings(){$('setMask').className='modal-mask show';syncSettingsUI();}
+function closeSettings(){$('setMask').className='modal-mask';}
+
+function toast(text){
+  const t=$('toast');t.textContent=text;t.classList.add('show');
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),1400);
+}
+
+boot();
+</script>
+</body>
+</html>
