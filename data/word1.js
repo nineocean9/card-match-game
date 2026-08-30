@@ -9,6 +9,10 @@ const REMOVE = new Set([
   '含“三”成语','含“云”字','含木字旁','双人旁'
 ]);
 
+// 内容高度重复、实际边界不清的主题不同时进入关卡候选池。
+// “家电类型”与“家电”内容高度重叠，保留更自然的“家电”。
+const REMOVE_DUPLICATE_TOPICS = new Set(['家电类型']);
+
 // Emoji 质量筛选：优先保留一眼能认出的具体物体/动物/食物/交通工具等。
 // 明显容易混淆的一组不进入关卡候选池（例如一串相近的笑脸、纯色圆点）。
 const LOW_CLARITY_EMOJI = new Set([
@@ -44,6 +48,7 @@ const result = [];
 for (const item of merged.values()) {
   if (item.kind === 'emoji' && !emojiClarity(item)) continue;
   if (REMOVE.has(item.t)) continue;
+  if (REMOVE_DUPLICATE_TOPICS.has(item.t)) continue;
 
   // 原“欧美节日装饰”统一并入“节日装饰”，保留中外代表性节日装饰。
   if (item.t === '欧美节日装饰') {
@@ -70,4 +75,17 @@ for (const item of merged.values()) {
   result.push(item);
 }
 
-module.exports = result;
+// 所有重命名规则执行完后再次按最终主题名合并，避免“欧美节日装饰”和“节日”等重命名后重新撞名。
+const finalMerged = new Map();
+for (const item of result) {
+  const prev = finalMerged.get(item.t);
+  if (!prev) {
+    finalMerged.set(item.t, { ...item, w: [...item.w] });
+    continue;
+  }
+  const seen = new Set(prev.w);
+  for (const w of item.w) if (!seen.has(w)) prev.w.push(w);
+  if (prev.kind !== item.kind) prev.kind = 'mixed';
+}
+
+module.exports = [...finalMerged.values()];
