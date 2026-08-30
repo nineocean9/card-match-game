@@ -46,9 +46,9 @@ function levelParams(n, opt) {
   if(base<=2) needUpper=6 + base;
   else if(base<=4) needUpper=7;
   else {
-    const tier = Math.floor((base-5)/5);
-    const pos = (base-5)%5;
-    needUpper=Math.min(maxNeed, 7 + tier + Math.floor(pos/2));
+    // 需求上限按2关左右小步增加，但不在5关换档时回落。
+    // 这样5关内部是缓慢爬坡，下一档再由主题数量等参数形成主要难度提升。
+    needUpper=Math.min(maxNeed, 7 + Math.floor((base-5)/2));
   }
   const needLower=minNeed;
   // pickThemes 使用最低需求筛选主题；实际每个主题的需求在 makeLevel 中生成。
