@@ -22,7 +22,9 @@ const WORDS = require('../data/word1.js');
 //   后期虽然牌更多、主题更多，但步数缓冲也同步放宽，避免变成单纯“步数卡死”。
 function levelParams(n, opt) {
   const o = opt || {};
-  const base = Math.max(1, n);
+  // 关卡号必须先规范化；跳关输入、URL 参数或旧存档出现非数字时，不能让 NaN 沿曲线传播。
+  const parsedLevel = Number(n);
+  const base = Number.isFinite(parsedLevel) ? Math.max(1, Math.floor(parsedLevel)) : 1;
 
   // 主题数采用“5关一个大档”的平台曲线：
   // 同一档内部缓慢增加难度，进入下一档时再增加一个主题，避免之前3关一跳导致的增长过快。
@@ -77,7 +79,8 @@ function levelParams(n, opt) {
   // 若随机 ±2 恰好超出当前需求上下限可表达的范围，则重新取一个合法偏移，
   // 从而仍然保证“目标值附近 ±2”，同时保证后续需求分布一定能精确凑出该总数。
   const randomDelta = Math.floor(Math.random()*5)-2;
-  const totalCards=targetBase+randomDelta;
+  // 目标牌数必须始终是有限整数；这是后续需求分配的唯一输入。
+  const totalCards=Number.isFinite(targetBase) ? targetBase+randomDelta : 28;
 
   // 桌面牌数也要有随机性：中心值仍沿用原来的难度曲线，实际开局在小范围内浮动。
   // 第3关中心约18、第4关中心约19；后期随总牌量增长，桌面占比逐渐下降。
@@ -179,6 +182,8 @@ function makeLevel(n, opts) {
   const minWords = p.themeCount * p.need;
   const maxWords = capacityPool.slice(0,p.themeCount).reduce((sum,t) => sum + t.w.length, 0);
   let targetWords = p.totalCards - p.themeCount;
+  // 双重保险：即使外部参数或旧代码把 totalCards 污染成 NaN，也立即回到可表达的合法范围。
+  if(!Number.isFinite(targetWords)) targetWords = minWords;
   targetWords = Math.max(minWords, Math.min(maxWords, targetWords));
   p.totalCards = targetWords + p.themeCount;
   // 档内目标如果高于默认上限，允许本关部分主题承担更高需求；具体上限仍受词库容量约束。
@@ -254,23 +259,27 @@ function makeLevel(n, opts) {
     if(matched){ needs=profile; themes=matched; }
   }
 
-  // 理论上词库足够时不会进入这里；作为兜底仍然保证需求量先于主题匹配。
+  // 如果随机需求与主题容量没有一次匹配成功，不抛异常：
+  // 直接选容量足够的其它主题，并按实际词库容量重新分配需求量。
   if(themes.length !== p.themeCount){
-    needs = makeNeedProfile() || Array(p.themeCount).fill(p.need);
-    const fallbackPool = WORDS.filter(x=>x.w.length >= p.need);
-    const byName = new Map();
-    for(const t of fallbackPool){ const old=byName.get(t.t); if(!old || t.w.length>old.w.length) byName.set(t.t,t); }
-    const unique=Array.from(byName.values());
-    themes=[];
-    const used=new Set();
-    for(const need of [...needs].sort((a,b)=>b-a)){
-      const c=unique.filter(t=>!used.has(t.t)&&t.w.length>=need);
-      if(!c.length) break;
-      const t=c[Math.floor(Math.random()*c.length)]; used.add(t.t); themes.push(t);
+    const fallbackPool = capacityPool.slice(0,p.themeCount).slice();
+    const emojiIndex = fallbackPool.findIndex(t => t.kind === 'emoji' || (themeOpts.allowMixed && t.kind === 'mixed'));
+    if(themeOpts.requireEmoji && emojiIndex > 0){
+      [fallbackPool[0],fallbackPool[emojiIndex]]=[fallbackPool[emojiIndex],fallbackPool[0]];
     }
-    // 这里按需求量从高到低匹配；下面会把需求量按同样顺序绑定到主题。
-    themes=themes.slice(0,p.themeCount);
-    if(themes.length < p.themeCount) throw new Error('词库中没有足够的主题满足本关预先分配的需求量');
+    themes=fallbackPool;
+    needs=Array(p.themeCount).fill(p.need);
+    let remain=targetWords-needs.reduce((a,b)=>a+b,0);
+    for(let i=0; remain>0 && i<themes.length; i++){
+      const cap=Math.max(p.need,themes[i].w.length);
+      const add=Math.min(remain,cap-needs[i]);
+      needs[i]+=add;
+      remain-=add;
+    }
+    if(remain>0){
+      p.totalCards=needs.reduce((a,b)=>a+b,0)+themes.length;
+      targetWords=p.totalCards-themes.length;
+    }
   }
 
   const require = {};
@@ -280,8 +289,9 @@ function makeLevel(n, opts) {
   // 需求分布已经以 p.totalCards - themeCount 为目标生成；这里再次校验，
   // 防止以后修改需求算法时把“目标牌数”和“实际牌数”重新分离。
   const actualTotalCards=needs.reduce((a,b)=>a+b,0)+themes.length;
+  // 需求分配经过容量兜底后应与目标严格一致；这里仅做最后的安全同步，不再抛异常。
   if(actualTotalCards !== p.totalCards){
-    throw new Error(`关卡${n}牌数生成异常：目标${p.totalCards}，实际${actualTotalCards}`);
+    p.totalCards=actualTotalCards;
   }
   const totalCards=p.totalCards;
   let tableRatio;

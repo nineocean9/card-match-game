@@ -351,7 +351,7 @@ async function boot(){
   // word1.js 是清理后的词库包装层，它仍需读取原始 words.js。
   // 因此这里必须同时预加载 words.js，否则启动时 require('./words.js') 会失败，
   // 导致 boot() 中断，表现为“点击开始后页面卡住且没有发牌”。
-  for(const k of ['data/words.js','data/word1.js','utils/levels.js']) srcs[k]=await(await fetch(k)).text();
+  for(const k of ['data/words.js','data/word1.js','utils/levels.js']) srcs[k]=await(await fetch(k,{cache:'no-store'})).text();
   WORDS=ensureModule('data/word1.js',srcs);
   L=ensureModule('utils/levels.js',srcs);
   const catById={};WORDS.forEach(w=>catById[w.id]=w);
@@ -412,6 +412,8 @@ function randomDistribution(total,count){
   return parts;
 }
 function newGame(levelId){
+  const parsedLevel=Number(levelId);
+  levelId=Number.isFinite(parsedLevel)?Math.max(1,Math.floor(parsedLevel)):1;
   currentLevel=levelId;
   state.inspectMode=false;state.deadlockPrompted=false;state.undoSnapshot=null;state.flipIds.clear();
   $('deadlockMask')?.classList.remove('show');
@@ -1113,6 +1115,4 @@ boot();
     height:100% !important;
   }
 }
-
-
 
