@@ -24,19 +24,18 @@ function levelParams(n, opt) {
   const o = opt || {};
   const base = Math.max(1, n);
 
-  // 主题数采用“平台”曲线，而不是每关递增：
-  // 5~7关一档、8~10关一档、11~13关一档……到后期封顶。
-  // 同一档内部主要通过每主题需求量、总牌量和步数变化制造难度。
+  // 主题数采用“5关一个大档”的平台曲线：
+  // 同一档内部缓慢增加难度，进入下一档时再增加一个主题，避免之前3关一跳导致的增长过快。
   const themeCap = Math.max(8, o.themeCount || o.themeCap || 13);
   let themeCount;
   if(base===1) themeCount=4;
   else if(base===2) themeCount=6;
-  else if(base<=4) themeCount=7 + (base-2); // 3=8, 4=9
-  else if(base<=7) themeCount=9;
-  else if(base<=10) themeCount=10;
-  else if(base<=13) themeCount=11;
-  else if(base<=16) themeCount=12;
-  else themeCount=Math.min(themeCap,13);
+  else if(base===3) themeCount=8;
+  else if(base===4) themeCount=9;
+  else {
+    const tier=Math.floor((base-5)/5);
+    themeCount=Math.min(themeCap,9+tier);
+  }
 
   // 每主题需求不能再用一个 need 给所有主题“一刀切”。
   // 3/4关的参考难度是类似 0/3、0/7、0/6、0/4、0/7... 的分布，
@@ -47,9 +46,9 @@ function levelParams(n, opt) {
   if(base<=2) needUpper=6 + base;
   else if(base<=4) needUpper=7;
   else {
-    const tierProgress = (base-5) % 3;
-    const tier = Math.floor((base-5)/3);
-    needUpper=Math.min(maxNeed, 7 + tier + tierProgress);
+    const tier = Math.floor((base-5)/5);
+    const pos = (base-5)%5;
+    needUpper=Math.min(maxNeed, 7 + tier + Math.floor(pos/2));
   }
   const needLower=minNeed;
   // pickThemes 使用最低需求筛选主题；实际每个主题的需求在 makeLevel 中生成。
@@ -70,27 +69,15 @@ function levelParams(n, opt) {
   else if(base===3) targetBase=61;
   else if(base===4) targetBase=63;
   else {
-    const tier=Math.floor((base-5)/3);
-    const pos=(base-5)%3;
-    targetBase=66 + tier*8 + pos*2;
+    const tier=Math.floor((base-5)/5);
+    const pos=(base-5)%5;
+    targetBase=66 + tier*10 + pos*2;
   }
   // 目标总牌数只负责确定本关的规模，不再被后面的需求分布“偷偷改大”。
   // 若随机 ±2 恰好超出当前需求上下限可表达的范围，则重新取一个合法偏移，
   // 从而仍然保证“目标值附近 ±2”，同时保证后续需求分布一定能精确凑出该总数。
-  const minTotal=themeCount*minNeed + themeCount;
-  const maxTotal=themeCount*needUpper + themeCount;
-  const legalDeltas=[];
-  for(let d=-2;d<=2;d++){
-    const v=targetBase+d;
-    if(v>=minTotal && v<=maxTotal) legalDeltas.push(d);
-  }
-  // 每次调用 makeLevel 都重新随机一次，不把 targetBase 本身当成最终牌数。
-  // 正常的第3/4关 [-2,+2] 五个偏移都合法，因此应分别得到目标值附近的5种牌数。
   const randomDelta = Math.floor(Math.random()*5)-2;
-  const delta = legalDeltas.includes(randomDelta)
-    ? randomDelta
-    : legalDeltas[Math.floor(Math.random()*legalDeltas.length)];
-  const totalCards=targetBase+delta;
+  const totalCards=targetBase+randomDelta;
 
   // 桌面牌数也要有随机性：中心值仍沿用原来的难度曲线，实际开局在小范围内浮动。
   // 第3关中心约18、第4关中心约19；后期随总牌量增长，桌面占比逐渐下降。
@@ -111,11 +98,9 @@ function levelParams(n, opt) {
   else if(base===2) steps=100;
   else if(base<=4) steps=130;
   else {
-    const tier = Math.floor((base-5)/3);
-    const pos = (base-5)%3;
-    const tierBase = 150 + tier*18;
-    const posBonus = pos===0 ? 0 : (pos===1 ? 5 : 3);
-    steps=tierBase+posBonus;
+    const tier = Math.floor((base-5)/5);
+    const pos = (base-5)%5;
+    steps=150 + tier*20 + pos*3;
   }
   steps=Math.min(o.stepCap||360,steps);
 
@@ -179,7 +164,25 @@ function makeLevel(n, opts) {
   // 不能反过来先随机主题再塞需求量，否则很容易出现：主题只有4个词，却被分配到0/7，
   // 最后 makeDeck() 的 slice() 悄悄少发牌，导致关卡总牌数低于设计目标。
   // 分类卡本身每主题占1张，所以目标词卡数 = 目标总牌数 - 主题数。
-  const targetWords = p.totalCards - p.themeCount;
+  // 先根据词库实际容量校正目标，避免目标超出可表达范围后生成 NaN。
+  // 优先通过调整主题需求量满足目标；词库确实装不下时，再把目标牌数压到
+  // 当前主题数量能够承载的最大值，而不是直接让关卡生成失败。
+  const capacityMap = new Map();
+  for (const t of WORDS) {
+    const old = capacityMap.get(t.t);
+    if (!old || t.w.length > old.w.length) capacityMap.set(t.t, t);
+  }
+  const capacityPool = Array.from(capacityMap.values()).filter(t => t.w.length >= p.need)
+    .sort((a,b) => b.w.length - a.w.length);
+  if (capacityPool.length < p.themeCount) p.themeCount = capacityPool.length;
+  if (p.themeCount <= 0) throw new Error('词库中没有可用于生成关卡的主题');
+  const minWords = p.themeCount * p.need;
+  const maxWords = capacityPool.slice(0,p.themeCount).reduce((sum,t) => sum + t.w.length, 0);
+  let targetWords = p.totalCards - p.themeCount;
+  targetWords = Math.max(minWords, Math.min(maxWords, targetWords));
+  p.totalCards = targetWords + p.themeCount;
+  // 档内目标如果高于默认上限，允许本关部分主题承担更高需求；具体上限仍受词库容量约束。
+  const profileUpper = Math.max(p.needUpper, Math.ceil(targetWords / p.themeCount));
   let needs = [];
   let themes = [];
 
@@ -191,7 +194,7 @@ function makeLevel(n, opts) {
     let guard = 0;
     while(remain > 0 && guard++ < 10000){
       const candidates = [];
-      for(let i=0;i<arr.length;i++) if(arr[i] < p.needUpper) candidates.push(i);
+      for(let i=0;i<arr.length;i++) if(arr[i] < profileUpper) candidates.push(i);
       if(!candidates.length) return null;
       const i = candidates[Math.floor(Math.random()*candidates.length)];
       arr[i]++;

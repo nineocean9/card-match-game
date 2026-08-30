@@ -90,14 +90,14 @@ button{font:inherit}
 .mission.locked .lock-icon{font-size:22px;opacity:.9}
 .mission.has-card{background:transparent;border:0;box-shadow:none;color:var(--ink);overflow:visible}
 /* 主题标签：保持原来的完整金色标签样式；卡面可以覆盖标签下部，但标签本身不被截断。 */
-.mission .slot-title{position:absolute;top:0;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:4}
+.mission .slot-title{position:absolute;top:-42px;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:7}
 .mission .slot-title .cat-name{font-size:12px;font-weight:500;letter-spacing:.2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:0;width:100%;height:105px;box-sizing:border-box;border-radius:14px;background:var(--card);border:3px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;color:var(--ink);font-size:20px;font-weight:400;padding-top:26px;padding-bottom:4px;}
+.mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:0;width:100%;height:105px;box-sizing:border-box;border-radius:14px;background:var(--card);border:3px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;color:var(--ink);font-size:20px;font-weight:400;padding:0 10px;}
 /* 词卡里的词:变细 + 水平居中 + 支持换行(x/N 计数固定顶部,不与词重叠) */
-.mission .slot-word .name{font-weight:400;text-align:center;word-break:break-all;overflow-wrap:anywhere;line-height:1.25;max-width:100%;}
+.mission .slot-word .name{font-weight:400;text-align:center;word-break:break-all;overflow-wrap:anywhere;line-height:1.25;max-width:100%;width:100%;}
 .mission .slot-word .icon{font-weight:400;line-height:1;}
 .mission .slot-word.category-only{top:0;left:50%;transform:translateX(-50%);width:100%;height:105px;background:linear-gradient(145deg,#ffe77a,#efbd25);border:3px solid #e0a900;border-radius:12px;padding:10px}
-.mission .slot-count{position:absolute;left:8px;top:6px;color:#6e685e;font-size:12px;font-weight:400;z-index:9;line-height:1}
+.mission .slot-count{position:absolute;left:8px;top:14px;color:#6e685e;font-size:12px;font-weight:400;z-index:9;line-height:1}
 .mission.over{transform:translateY(-5px);box-shadow:0 0 0 4px #fff8,0 5px 16px #0004}
 .mission.done{animation:missionDone .55s ease}
 .mission.flash{animation:missionFlash .65s ease}
@@ -197,8 +197,8 @@ button{font:inherit}
  .empty-drawn{left:calc(50% - 74px);width:68px;height:94px}
  .missions{left:18px;right:18px;top:238px;height:94px;gap:6px}
  .mission{height:94px;border-width:2px}
- .mission .slot-title{position:absolute;top:0;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:4}.mission .slot-title .cat-name{font-size:10px}
- .mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:0;width:100%;height:105px;box-sizing:border-box;border-radius:14px;background:var(--card);border:3px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;color:var(--ink);font-size:20px;font-weight:400;padding-top:26px;padding-bottom:4px;}.mission .slot-word.category-only{height:94px;border-width:2px;border-radius:10px;padding:7px}.mission .category-center{font-size:17px}.mission .slot-count{left:6px;top:5px;font-size:10px}.mission .slot-word .name{font-size:16px!important}.mission .slot-word .icon{font-size:28px!important}
+ .mission .slot-title{position:absolute;top:-42px;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:7}.mission .slot-title .cat-name{font-size:10px}
+ .mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:0;width:100%;height:94px;box-sizing:border-box;border-radius:11px;background:var(--card);border:2px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;color:var(--ink);font-size:17px;font-weight:400;padding-top:20px;padding-bottom:4px;}.mission .slot-word.category-only{height:94px;border-width:2px;border-radius:11px;padding:7px}.mission .category-center{font-size:17px}.mission .slot-count{left:6px;top:5px;font-size:10px}.mission .slot-word .name{font-size:16px!important}.mission .slot-word .icon{font-size:28px!important}
  .board{left:18px;right:18px;top:356px;bottom:116px;gap:7px}
  .col{min-height:390px}
  .card{width:68px;height:94px;left:calc(50% - 34px);border-width:2px;border-radius:10px;padding:6px}.card .name{font-size:16px}.card .icon{font-size:29px}.card .tag{left:5px;top:5px;font-size:9px}.known-peek{width:62px;height:18px;font-size:15px}
@@ -216,9 +216,50 @@ button{font:inherit}
 .drawn-card{position:absolute;top:0;width:76px;height:105px;border-radius:10px;background:var(--card);color:var(--ink);border:3px solid #f3efe8;box-shadow:2px 3px 2px #0002;display:flex;align-items:center;justify-content:center;text-align:center;cursor:default;z-index:1}
 .drawn-card.category-card{border-color:#e0a900;background:linear-gradient(145deg,#ffe77a,#efbd25);color:#604700}.drawn-card.category-card .cat-title{font-size:20px;font-weight:900;color:#604700}.drawn-card.category-card .cat-sub{font-size:10px;color:#8b6a18;margin-top:4px}.drawn-card.top{cursor:grab;z-index:99}.drawn-card .name{font-size:17px}.drawn-card .icon{font-size:29px}.drawn-card .tag{position:absolute;top:5px;left:6px;font-size:9px;color:#b09f8c}.drawn-card.red{border-color:var(--gold)}.drawn-card.dragging{z-index:1000!important;cursor:grabbing;box-shadow:0 18px 35px #0006;transform:scale(1.04) rotate(1deg)}
 .card{width:76px;height:105px;border-radius:12px;background:var(--card);color:var(--ink);border:3px solid #f4f1eb;box-shadow:0 2px 2px #0002;position:absolute;left:calc(50% - 38px);display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;user-select:none;touch-action:none;transition:top .22s,left .18s,transform .18s,box-shadow .18s}.card.faceup{cursor:grab}.card.faceup:hover{transform:translateY(-2px)}.card.dragging{z-index:1000!important;cursor:grabbing;box-shadow:0 18px 35px #0006;transform:scale(1.04) rotate(1deg);transition:none}.card.back{background:linear-gradient(145deg,#4fa5f5,#246bd9);border-color:#eaf6ff;cursor:default}.card.known{background:var(--card);border-color:#f4f1eb;cursor:default}.card.back:before{content:"";width:58px;height:70px;border:2px solid #73b8fa66;border-radius:8px;transform:rotate(45deg);opacity:.55}.card.selected{outline:4px solid #ffd44c;transform:translateY(-5px);z-index:50!important}.card .tag{position:absolute;left:7px;top:6px;font-size:10px;color:#b29e8c}.card .name{font-size:18px}.card .icon{font-size:32px}.card.red{border-color:var(--gold)}.card.category-card{background:linear-gradient(145deg,#ffe77a,#efbd25);border-color:#e0a900;color:#604700}.card.category-card .cat-title{font-size:20px;font-weight:900;color:#604700}.card.category-card .cat-sub{font-size:10px;color:#8b6a18;margin-top:4px}
-.mission .slot-title{position:absolute;top:0;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:4}.mission .slot-title .cat-name{font-size:12px;font-weight:500;letter-spacing:.2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:26px;width:90px;height:79px;box-sizing:border-box;border-radius:14px;background:var(--card);border:3px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:6;color:var(--ink);font-size:20px;font-weight:400;padding-top:26px;padding-bottom:4px}.mission .slot-word .name{font-weight:400;text-align:center;word-break:break-all;overflow-wrap:anywhere;line-height:1.25;max-width:100%}.mission .slot-word .icon{font-weight:400;line-height:1}.mission .slot-word.category-only{top:0;left:50%;transform:translateX(-50%);width:100%;height:105px;background:linear-gradient(145deg,#ffe77a,#efbd25);border:3px solid #e0a900;border-radius:14px;padding:10px}
-@media (max-width:600px){.drawn-card{width:68px;height:94px;border-width:2px;border-radius:10px}.drawn-card .name{font-size:16px}.drawn-card .icon{font-size:27px}.drawn-card .tag{top:4px;left:5px;font-size:9px}.card{width:68px;height:94px;left:calc(50% - 34px);border-width:2px;border-radius:10px;padding:6px}.card .name{font-size:16px}.card .icon{font-size:29px}.card .tag{left:5px;top:5px;font-size:9px}.mission .slot-title{width:100%;height:36px;border-width:2px;border-radius:11px 11px 0 0;padding-top:4px}.mission .slot-title .cat-name{font-size:10px}.mission .slot-word{width:100%;height:70px;top:24px;border-width:2px;border-radius:11px;font-size:17px;padding-top:20px}.mission .slot-word.category-only{height:94px;border-width:2px;border-radius:11px;padding:7px}.mission .category-center{font-size:17px}.mission .slot-count{left:6px;top:5px;font-size:10px}.mission .slot-word .name{font-size:16px!important}.mission .slot-word .icon{font-size:28px!important}}
-</style>
+.mission .slot-title{position:absolute;top:-42px;left:50%;transform:translateX(-50%);width:90px;height:42px;box-sizing:border-box;border-radius:14px 14px 0 0;background:linear-gradient(145deg,#ffe77a,#efbd25);border:2px solid #e0a900;border-bottom:0;color:#604700;display:flex;align-items:flex-start;justify-content:center;padding-top:5px;z-index:7}.mission .slot-title .cat-name{font-size:12px;font-weight:500;letter-spacing:.2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.mission .slot-word{position:absolute;left:50%;transform:translateX(-50%);top:26px;width:90px;height:79px;box-sizing:border-box;border-radius:14px;background:var(--card);border:3px solid #e0a900;box-shadow:0 2px 3px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:6;color:var(--ink);font-size:20px;font-weight:400;padding-top:26px;padding-bottom:4px}.mission .slot-word .name{font-weight:400;text-align:center;word-break:break-all;overflow-wrap:anywhere;line-height:1.25;max-width:100%}.mission .slot-word .icon{font-weight:400;line-height:1}.mission .slot-word.category-only{top:0;left:50%;transform:translateX(-50%);width:100%;height:105px;background:linear-gradient(145deg,#ffe77a,#efbd25);border:3px solid #e0a900;border-radius:14px;padding:10px}
+@media (max-width:600px){.drawn-card{width:68px;height:94px;border-width:2px;border-radius:10px}.drawn-card .name{font-size:16px}.drawn-card .icon{font-size:27px}.drawn-card .tag{top:4px;left:5px;font-size:9px}.card{width:68px;height:94px;left:calc(50% - 34px);border-width:2px;border-radius:10px;padding:6px}.card .name{font-size:16px}.card .icon{font-size:29px}.card .tag{left:5px;top:5px;font-size:9px}.mission .slot-title{width:100%;height:36px;border-width:2px;border-radius:11px 11px 0 0;padding-top:4px}.mission .slot-title .cat-name{font-size:10px}.mission .slot-word{width:100%;height:94px;top:0;border-width:2px;border-radius:11px;font-size:17px;padding:0 8px}.mission .slot-word.category-only{height:94px;border-width:2px;border-radius:11px;padding:7px}.mission .category-center{font-size:17px}.mission .slot-count{left:6px;top:5px;font-size:10px}.mission .slot-word .name{font-size:16px!important}.mission .slot-word .icon{font-size:28px!important}}
+/* FINAL: 已加入词卡的主题槽——标签只向灰槽外伸出，词卡占满整个灰槽；桌面/手机统一。 */
+.mission.has-card .slot-title{
+  top:-24px !important;
+  z-index:20 !important;
+}
+.mission.has-card .slot-word:not(.category-only){
+  top:0 !important;
+  bottom:0 !important;
+  left:0 !important;
+  transform:none !important;
+  width:100% !important;
+  height:100% !important;
+  padding:0 10px !important;
+  z-index:6 !important;
+  box-sizing:border-box !important;
+}
+@media (max-width:600px){
+  .mission.has-card .slot-title{top:-20px !important;}
+  .mission.has-card .slot-word:not(.category-only){
+    top:0 !important;
+    bottom:0 !important;
+    left:0 !important;
+    width:100% !important;
+    height:100% !important;
+  }
+}/* FINAL THEME WORD-CARD LAYER/POSITION FIX */
+.mission.has-card .slot-title {
+    top: -20px !important;
+    z-index: 4 !important;
+}
+.mission.has-card .slot-word:not(.category-only) {
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+    z-index: 6 !important;
+}
+@media (max-width:600px) {
+    .mission.has-card .slot-title { top: -20px !important; }
+}</style>
 </head>
 <body>
 <div class="game" id="game">
@@ -1007,6 +1048,71 @@ boot();
 </body>
 </html>
 
+
+
+
+
+
+
+/* 主题槽最终修正：标签必须显示在放大的词卡上方；词语几何中心严格位于白色卡面中心。 */
+.mission.has-card .slot-title{
+  display:flex !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  z-index:4 !important;
+}
+.mission.has-card .slot-word:not(.category-only){
+  top:0 !important;
+  bottom:auto !important;
+  height:100% !important;
+  width:100% !important;
+  padding:0 !important;
+  z-index:6 !important;
+}
+.mission.has-card .slot-word:not(.category-only) .name{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:calc(100% - 16px);
+  margin:0;
+  text-align:center;
+  line-height:1.25;
+}
+.mission.has-card .slot-word:not(.category-only) .icon{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+}
+
+
+
+/* FINAL SLOT-ONLY FIX: 仅调整“已加入词卡”的主题槽。标签在灰槽外，词卡位于标签上层并占满灰槽。 */
+.mission.has-card .slot-title{
+  top:-20px !important;
+  z-index:4 !important;
+}
+.mission.has-card .slot-word:not(.category-only){
+  top:0 !important;
+  bottom:0 !important;
+  left:0 !important;
+  transform:none !important;
+  width:100% !important;
+  height:100% !important;
+  box-sizing:border-box !important;
+  z-index:6 !important;
+}
+@media (max-width:600px){
+  .mission.has-card .slot-title{top:-20px !important;}
+  .mission.has-card .slot-word:not(.category-only){
+    top:0 !important;
+    bottom:0 !important;
+    left:0 !important;
+    width:100% !important;
+    height:100% !important;
+  }
+}
 
 
 
