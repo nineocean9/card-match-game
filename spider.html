@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>分类蜘蛛纸牌</title>
 <style>
 :root{
@@ -163,7 +166,7 @@ button{font:inherit}
 .modal-mask.show{display:flex}
 .modal{background:#fff;border-radius:16px;padding:20px;width:82%;max-height:78vh;overflow-y:auto;color:var(--ink)}
 .modal h2{margin:0 0 14px;font-size:18px;color:#056333;text-align:center}
-.srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0}.volume-control{display:flex;align-items:center;gap:8px;min-width:155px}.volume-control input{width:112px;accent-color:#2f8d5b}.volume-control span{width:36px;text-align:right;font-size:12px;color:#557263;font-variant-numeric:tabular-nums}
 .slab{font-size:14px}
 .stepper{display:flex;align-items:center;gap:10px}
 .sbtn{width:28px;height:28px;border-radius:8px;background:#087b40;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -309,7 +312,8 @@ button{font:inherit}
 <div class="modal-mask" id="setMask">
   <div class="modal">
     <h2>游戏设置</h2>
-    <div class="srow"><div class="slab">音效<span class="hint">操作、提示与结果音效</span></div><div class="switch on" id="sw-sound"><div class="dot"></div></div></div>
+    <div class="srow volume-row"><div class="slab">背景音乐<span class="hint">Cheerful March</span></div><div class="volume-control"><input id="musicVolumeRange" type="range" min="0" max="100" step="1" value="28"><span id="musicVolumeValue">28%</span></div></div>
+    <div class="srow volume-row"><div class="slab">操作音效<span class="hint">移动、抽牌与提示</span></div><div class="volume-control"><input id="sfxVolumeRange" type="range" min="0" max="100" step="1" value="100"><span id="sfxVolumeValue">100%</span></div></div>
     <div class="srow"><div class="slab">震动反馈<span class="hint">支持的设备提供轻微反馈</span></div><div class="switch on" id="sw-vibration"><div class="dot"></div></div></div>
     <div class="srow"><div class="slab">确认退出<span class="hint">离开正在进行的关卡时确认</span></div><div class="switch on" id="sw-confirmExit"><div class="dot"></div></div></div>
     <div class="srow"><div class="slab">当前进度<span class="hint" id="progressInfo">已解锁第 1 关</span></div></div>
@@ -330,7 +334,7 @@ button{font:inherit}
   </div>
 </div>
 
-<script>
+<script src="utils/audio.js?v=20260831-04"></script><script>
 // ===== mini CommonJS loader(加载 data/words.js 与 utils/levels.js) =====
 const __modCache = {};
 function resolvePath(from,to){const s=from.split('/').slice(0,-1);for(const p of to.split('/')){if(p==='.'||p==='')continue;if(p==='..'){s.pop();continue;}s.push(p);}return s.join('/');}
@@ -538,7 +542,7 @@ function renderDrawn(){
     el.innerHTML=covered&&card.known&&(card.type==='word'||card.type==='category') ? '' : cardInner(card,true,false);
     if(actualIndex===state.drawn.length-1) attachDrag(el,{type:'drawn',index:actualIndex,card});
     box.appendChild(el);
-    if(covered&&card.known&&card.type==='word'&&!card.permaReveal){
+    if(covered&&card.known&&(card.type==='word'||card.type==='category')&&!card.permaReveal){
       const peek=document.createElement('div');
       peek.className='drawn-peek';
       peek.textContent=card.name;
@@ -578,6 +582,7 @@ function renderBoard(){
       if(covered&&card.known&&(card.type==='word'||card.type==='category')&&!permanentlyRevealed){
         const peek=document.createElement('div');
         peek.className='known-peek';
+        peek.dataset.cardId=card.id;
         peek.textContent=card.name;
         if(card.type==='category')peek.classList.add('category-peek');
         peek.style.top=(ri*23+2)+'px';
@@ -609,7 +614,7 @@ function attachDrag(el,data){
       const col=state.cols[data.col],card=data.card;
       if(!card.face){toast('未知牌不能移动');return;}
       if(card.type==='category'){moving=[card];elements=[el];}
-      else{const run=getMovableRun(col,data.row);moving=col.slice(run.start,run.end);elements=[...document.querySelectorAll(`.col[data-col="${data.col}"] .card`)].filter((_,i)=>i>=run.start&&i<run.end);}
+      else{const run=getMovableRun(col,data.row);moving=col.slice(run.start,run.end);elements=[...document.querySelectorAll(`.col[data-col="${data.col}"] .card`)].filter((_,i)=>i>=run.start&&i<run.end);const movingIds=new Set(moving.map(c=>c.id));elements.push(...[...document.querySelectorAll(`.col[data-col="${data.col}"] .known-peek[data-card-id]`)].filter(x=>movingIds.has(x.dataset.cardId)));}
     }
     e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(_){}
     const rect=el.getBoundingClientRect();
@@ -867,6 +872,10 @@ function wrong(el){
   // 错误落点：松手后立即脱离拖拽状态，不再跟随鼠标；从“当前错误落点”直接开始闪红并回到原位。
   const d=state.drag;
   const elements=d?.elements||[];
+  // 错误回位不能继承抽牌/翻牌留下的 flip 状态。
+  // 否则当本次失误耗尽步数、failGame() 触发 render() 时，牌会在回位动画结束后再次翻转。
+  (d?.moving||[]).forEach(card=>state.flipIds.delete(card.id));
+  elements.forEach(x=>x.classList.remove('flip'));
   const original=elements.map(x=>{
     const r=x.getBoundingClientRect();
     return {
@@ -931,7 +940,7 @@ function drawCard(){
     return;
   }
   const pile=$('drawPile');pile.classList.remove('pulse');void pile.offsetWidth;pile.classList.add('pulse');
-  const card=state.stock.pop();card.face=true;card.known=true;state.drawn.push(card);state.flipIds.add(card.id);state.steps=Math.max(0,state.steps-1);state.combo=0;state.deadlockPrompted=false;render();setTimeout(()=>state.flipIds.delete(card.id),450);
+  const card=state.stock.pop();card.face=true;card.known=true;state.drawn.push(card);state.flipIds.clear();state.flipIds.add(card.id);state.steps=Math.max(0,state.steps-1);state.combo=0;state.deadlockPrompted=false;render();setTimeout(()=>state.flipIds.delete(card.id),450);
   if(state.steps<=0){failGame('步数用尽，挑战失败！');return;}
   autoShuffleIfStuck();
 }
@@ -1007,10 +1016,12 @@ function bindUI(){
   $('btnNextLevel').onclick=()=>{closeWinDialog();newGame(currentLevel+1);};
   $('btnReplayLevel').onclick=()=>{closeWinDialog();newGame(currentLevel);};
   $('btnWinHome').onclick=()=>location.href='index.html';
-  ['sound','vibration','confirmExit'].forEach(k=>{
+  ['vibration','confirmExit'].forEach(k=>{
     const el=$('sw-'+k); if(!el)return;
     el.onclick=()=>{const d=store.load();d.settings=d.settings||{};d.settings[k]=!(d.settings[k]===undefined?true:d.settings[k]);store.save(d);syncSettingsUI();};
   });
+  $('musicVolumeRange').addEventListener('input',e=>{const value=Number(e.target.value);const d=store.load();d.settings=d.settings||{};d.settings.musicVolume=value;delete d.settings.volume;store.save(d);$('musicVolumeValue').textContent=value+'%';GameAudio.sync({musicVolume:value});});
+  $('sfxVolumeRange').addEventListener('input',e=>{const value=Number(e.target.value);const d=store.load();d.settings=d.settings||{};d.settings.sfxVolume=value;delete d.settings.sound;store.save(d);$('sfxVolumeValue').textContent=value+'%';GameAudio.sync({sfxVolume:value});});
 }
 function showWinDialog(){
   $('winText').textContent='第 '+currentLevel+' 关完成，已解锁第 '+Math.max(maxUnlocked,currentLevel+1)+' 关';
@@ -1034,8 +1045,12 @@ function resetProgress(){
 }
 function syncSettingsUI(){
   const d=store.load(),s=d.settings||{};
-  ['sound','vibration','confirmExit'].forEach(k=>{const v=s[k]===undefined?true:!!s[k];$('sw-'+k).className='switch'+(v?' on':'');});
+  ['vibration','confirmExit'].forEach(k=>{const v=s[k]===undefined?true:!!s[k];$('sw-'+k).className='switch'+(v?' on':'');});
   $('progressInfo').textContent='已解锁第 '+Math.max(1,d.maxUnlocked||1)+' 关';
+  const musicVolume=s.musicVolume===undefined?28:Math.max(0,Math.min(100,Number(s.musicVolume)||0));
+  const sfxVolume=s.sfxVolume===undefined?100:Math.max(0,Math.min(100,Number(s.sfxVolume)||0));
+  $('musicVolumeRange').value=musicVolume;$('musicVolumeValue').textContent=musicVolume+'%';
+  $('sfxVolumeRange').value=sfxVolume;$('sfxVolumeValue').textContent=sfxVolume+'%';
 }
 function openSettings(){$('setMask').className='modal-mask show';syncSettingsUI();}
 function closeSettings(){$('setMask').className='modal-mask';}
@@ -1046,6 +1061,14 @@ function toast(text){
 }
 
 boot();
+</script>
+<script>
+(function(){
+  const s=(store.load().settings||{}); GameAudio.bindGesture(); GameAudio.sync({musicVolume:s.musicVolume===undefined?28:s.musicVolume,sfxVolume:s.sfxVolume===undefined?100:s.sfxVolume});
+  const click=(id,fx)=>$(id)?.addEventListener('click',()=>GameAudio.play(fx));
+  click('drawPile','draw'); click('shuffleBtn','shuffle'); click('stepsBtn','click'); click('undoBtn','click'); click('inspectBtn','click');
+  document.addEventListener('pointerdown',e=>{if(e.target.closest('.card.faceup,.drawn-card.top'))GameAudio.play('move')},{passive:true});
+})();
 </script>
 </body>
 </html>
@@ -1116,3 +1139,13 @@ boot();
   }
 }
 
+
+<style id="theme-card-white-only-fix">
+/* 主题卡统一改为白色卡面；保留原金色边框。包括灰槽内、底部牌堆和抽牌堆。 */
+.mission .slot-word.category-only,
+.card.category-card,
+.drawn-card.category-card {
+  background:#fff !important;
+  border-color:#e0a900 !important;
+}
+</style>
